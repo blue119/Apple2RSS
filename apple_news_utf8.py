@@ -57,15 +57,17 @@ def CreatImgTable(SmallIMG = '', BigIMG = '', titleIMG = ''):
 
 def GetPage(URL):
 	try:
-		text = urlopen(URL).read()
+		url_req = urllib2.Request(URL)
+		url_req.add_header("User-agent", "Mozilla/5.0")
+		html_page = urllib2.urlopen(url_req).read()
 	except IOError, ErrMsg:
 		try:
 			print 'IOError(URL = %s) : %s, Try again\n', URL, ErrMsg
-			text = urlopen(URL).read() #try again
+			html_page = urllib2.urlopen(url_req).read() #try again
 		except IOError, ErrMsg:
 			print 'Maybe %s is dead\n', URL
 			return None
-	return BeautifulSoup(unicode(text, 'utf-8', 'ignore'))
+	return BeautifulSoup(html_page)
 
 def Url2TinyUrl(URL):
 	return urlopen('http://tinyurl.com/api-create.php?url=' + URL).read()
@@ -73,33 +75,33 @@ def Url2TinyUrl(URL):
 def Ch2UTF8(char):
 	return unicode(char, 'utf-8', 'ignore')
 
-def PageSorting(PageContnet, First = False):
+def PageSorting(PageContent, First = False):
 	ImgTable = []
 	summary = []
-	Content = PageContnet.find('div', {'id':'tbl_content'})
-	if First:
-		# Grab Main Page's Picture
-		try:
-			IMG = str(PageContnet.find('script', {'language':'javascript'}))
-			p = re.compile('g_ImageTable.*\"(.*)\",.*\"(.*)\",.*imageUrl.*\=(.*)\".*;')
-			result = p.findall(IMG)
-			for SmallIMG,titleIMG,BigIMG in result:
-				ImgTable.append(CreatImgTable(SmallIMG, BigIMG, titleIMG))
-			#print ''.join(ImgTable)
-#summary = ''.join(ImgTable) + summary
-			summary.append(''.join(ImgTable))
-		except AttributeError: #No Picture in intro
-			pass
-	#Grab tbl_contentLead
+	Content = PageContent.find('div', {'id':'article_left'})
 	try:
-#		summary = summary + str(Content.find('div', {'class':'tbl_contentLead'}).find('p')).replace(' ', '')
-		summary.append(str(Content.find('div', {'class':'tbl_contentLead'}).find('p')).replace(' ', ''))
-	except AttributeError:
+		IMG = str(Content.find('script', {'language':'javascript'}))
+		p = re.compile('g_ImageTable.*\"(.*)\",\ \"(.*)\",.*javascript:.*\(\'(.*)\',\'http.*\',\'.*\',\'.*\)\"\)')
+		result = p.findall(IMG)
+		for SmallIMG,titleIMG,BigIMG in result:
+			ImgTable.append(CreatImgTable(SmallIMG, BigIMG, titleIMG))
+		summary.append(''.join(ImgTable))
+	except AttributeError: #No Picture in intro
 		pass
+
+	#Grab alticl section
+	p = re.compile('.*iclickAdBody_Start\"\>\<\/span\>(.*)\<span\ name\=\"iclickAdBody_End\"\ id\=.*')
+	Content = BeautifulSoup(p.findall(str(Content).replace('\n',''))[0])
+
+	#Abstract
+	summary.append(str(Content.find('p', {'class':'summary'})))
+	
+	tmp = str(Content).split('<h2 class="article_title">')
+	#remove Abstract
+	if 'summary' in tmp[0]:
+		del tmp[0]
+
 	#First Paragraph
-#	summary = summary + str(Content.find('p', {'class':'paragraph'})).replace('<p class=\"paragraph\">', '').replace('</p>', '')
-#	summary.append(str(Content.find('p', {'class':'paragraph'})).replace('<p class=\"paragraph\">', '').replace('</p>', ''))
-	#Another Paragraph
 	tmpArray = []
 	tmpArray2 = []
 	tmpArray3 = []
@@ -127,13 +129,13 @@ def PageSorting(PageContnet, First = False):
 #	return summary
 	return ''.join(summary)
 
-def GetTitle(PageContnet):
+def GetTitle(PageContent):
 	p = re.compile('^<title>(.*)\ \|\ .*\ \|\ .*\ \|.*\|.*</title>')
-	Title = p.findall(str(PageContnet.title).replace('\n', ''))
+	Title = p.findall(str(PageContent.title).replace('\n', ''))
 	try:
 		return Title[0]
 	except IndexError:
-		print 'Can not parsing this title : "' + str(PageContnet.title) + '"'
+		print 'Can not parsing this title : "' + str(PageContent.title) + '"'
 		Title = None
 		return Title
 
@@ -142,14 +144,10 @@ AppleNewHome = urlopen( HomeUrl + 'applenews/todayapple').read()
 #AppleNewHome = unicode(AppleNewHome, 'big5', 'ignore')
 soupAppleNewHome = BeautifulSoup(AppleNewHome)
 
-RssFileName = { Ch2UTF8('體育'):'Sport', 
-	Ch2UTF8('娛樂'):'Entertainment', 
+RssFileName = {Ch2UTF8('副刊'):'Supplement', Ch2UTF8('體育'):'Sport', 
+	Ch2UTF8('蘋果國際'):'International', Ch2UTF8('娛樂'):'Entertainment', 
 	Ch2UTF8('財經'):'Finance', Ch2UTF8('頭條要聞'):'HeadLine', 
 	Ch2UTF8('地產王'):'Estate'}
-#RssFileName = {Ch2UTF8('副刊'):'Supplement', Ch2UTF8('體育'):'Sport', 
-#	Ch2UTF8('蘋果國際'):'International', Ch2UTF8('娛樂'):'Entertainment', 
-#	Ch2UTF8('財經'):'Finance', Ch2UTF8('頭條要聞'):'HeadLine', 
-#	Ch2UTF8('地產王'):'Estate'}
 
 Contents = []
 Item = {}	
@@ -192,29 +190,25 @@ for Classify in NewsChunksDict:
 	print '\n------------- ' + Classify + ' -------------'
 	for NewsList in NewsChunksDict[Classify]:
 		try:
-			PageContnet = GetPage(HomeUrl + NewsList['href'])
+			PageContent = GetPage(HomeUrl + NewsList['href'])
 		except IOError:
 			#try again
 			try:
-				PageContnet = GetPage(HomeUrl + NewsList['href'])
+				PageContent = GetPage(HomeUrl + NewsList['href'])
 			except IOError:
 				#abandent
 				continue
-#		PageTitle = GetTitle(PageContnet)
-#		if PageTitle is None:
-#			print 'Parsing fail at "' + NewsList['title'] + '"'
-#			continue
 		print '【' + NewsList['subClassify'] + '】' + NewsList['title']
 		summary = []
-		summary.append(PageSorting(PageContnet, True))
+		summary.append(PageSorting(PageContent, True))
 		#Grab Next Page
 		try:
-			for NextPage in PageContnet.find('div', {'id':'pagebar'}).find('ul', {'class':'number'}).findAll('a'):
+			for NextPage in PageContent.find('div', {'id':'pagebar'}).find('ul', {'class':'number'}).findAll('a'):
 				print '\tGetNextPage'
-				PageContnet = GetPage(NextPage['href'])
-				if PageContnet is None:
+				PageContent = GetPage(NextPage['href'])
+				if PageContent is None:
 					break
-				summary.append(PageSorting(PageContnet))
+				summary.append(PageSorting(PageContent))
 				sleep(1)
 		except AttributeError:
 			pass
