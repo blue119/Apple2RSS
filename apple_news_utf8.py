@@ -2,11 +2,13 @@
 # -*- coding: utf8 -*-
 
 #v0.1 can be run but not is good.
+#v0.2 patch to support new format
 
 from urllib import urlopen
 from BeautifulSoup import BeautifulSoup
 from time import gmtime, strftime, sleep
 import sys, re, copy
+import urllib2
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -75,10 +77,22 @@ def Url2TinyUrl(URL):
 def Ch2UTF8(char):
 	return unicode(char, 'utf-8', 'ignore')
 
+def write2file(b, filename = 'a.html'):
+	file_path = '/tmp/' + filename
+	f = open(file_path, 'w')
+	for i in range((len(b) / 1024) + 1):
+		if((len(b) - i * 1024) > 1024):
+			f.write(b[i*1024:((i+1)*1024)])
+		else:
+			f.write(b[i*1024:])
+	f.close()
+
 def PageSorting(PageContent, First = False):
 	ImgTable = []
 	summary = []
 	Content = PageContent.find('div', {'id':'article_left'})
+	if Content is None:
+		Content = PageContent
 	try:
 		IMG = str(Content.find('script', {'language':'javascript'}))
 		p = re.compile('g_ImageTable.*\"(.*)\",\ \"(.*)\",.*javascript:.*\(\'(.*)\',\'http.*\',\'.*\',\'.*\)\"\)')
@@ -88,45 +102,37 @@ def PageSorting(PageContent, First = False):
 		summary.append(''.join(ImgTable))
 	except AttributeError: #No Picture in intro
 		pass
-
 	#Grab alticl section
 	p = re.compile('.*iclickAdBody_Start\"\>\<\/span\>(.*)\<span\ name\=\"iclickAdBody_End\"\ id\=.*')
 	Content = BeautifulSoup(p.findall(str(Content).replace('\n',''))[0])
-
 	#Abstract
 	summary.append(str(Content.find('p', {'class':'summary'})))
-	
-	tmp = str(Content).split('<h2 class="article_title">')
-	#remove Abstract
-	if 'summary' in tmp[0]:
-		del tmp[0]
-
-	#First Paragraph
-	tmpArray = []
-	tmpArray2 = []
-	tmpArray3 = []
-	p = re.compile('.*<h2>(.*)</h2>(.*)')
-	tmp = str(Content).split('<br /></p><div class="spacer"></div>')
-	for i in tmp:
-		if p.findall(i):
-			tmpArray.append(p.findall(i)[0])
-	for i, j in tmpArray:
-	  	tmpArray2.append('<div id="block"><h3>%s</h3>%s</div>'%(i, j))
-	paragraph  = BeautifulSoup(''.join(tmpArray2))
-	p = re.compile('.*imageUrl=(.*)\"\ title=\"(.*)\"\ target.*img src=\"(.*)\"\ alt=\".*')
-	for i in paragraph.findAll('div', {'id':'block'}):
-		tmpArray3.append(str(i.h3))
-		result = p.findall(str(i)) # <= have picture
-		if result:
-			for BigIMG, titleIMG, SmallIMG in result:
-				ImgTable = []
-				ImgTable.append(CreatImgTable(SmallIMG, BigIMG, titleIMG))
-				tmpArray3.append(''.join(ImgTable))
-		tmpArray3.append(str(i.find('p', {'class':'paragraph'})).replace('<p class=\"paragraph\">', '').replace('</p>', ''))
-#	summary = summary + ''.join(tmpArray3)
-	summary.append(''.join(tmpArray3))
-	#print summary
-#	return summary
+	#split
+	Content = str(Content).replace('<h2 class="article_title">', '#split#<h2 class="article_title">')
+	Content = Content.split('#split#')
+	#pop Abstract
+	del Content[0]
+	#                                           "Title"  "Photo"                    "Article"
+	p = re.compile('.*<h2 class=\"article_title\">(.*)</h2>(.*)<p class="article_text">(.*)<div class=\"spacer\"></div>.*')
+	#                                       "Large"  "Small"    "Alt"
+	photo_parse = re.compile('.*javascript.*\'(.*)\',\'(.*)\',\'(.*)\',\'.*target=\".*')
+	photo_parse2 = re.compile('.*vascript.*javascript.*\'(.*)\',\'(.*)\',\'.*\',\'.*\'\);\">.*\"photo_summry\">(.*)<div\ .*')
+	for i in Content:
+		Title, Photo, Article = p.findall(i)[0]
+		#print Title
+		summary.append('<b>' + Title + '</b><br />')
+		if Photo is not '':
+			if 'photo_area' in Photo:
+				for i in BeautifulSoup(Photo).findAll('div',{'class':'photo_loader2'}):
+					Large, Small, Alt = photo_parse.findall(str(i))[0]
+					summary.append(CreatImgTable(Small, Large, Alt))
+			else:
+				Large, Small, Alt = photo_parse.findall(Photo)[0]
+				if '640pix' not in Large:
+					Large, Small, Alt = photo_parse2.findall(Photo)[0]
+				summary.append(CreatImgTable(Small, Large, Alt))
+		summary.append(Article)
+	#print ''.join(summary)
 	return ''.join(summary)
 
 def GetTitle(PageContent):
@@ -144,10 +150,12 @@ AppleNewHome = urlopen( HomeUrl + 'applenews/todayapple').read()
 #AppleNewHome = unicode(AppleNewHome, 'big5', 'ignore')
 soupAppleNewHome = BeautifulSoup(AppleNewHome)
 
-RssFileName = {Ch2UTF8('副刊'):'Supplement', Ch2UTF8('體育'):'Sport', 
-	Ch2UTF8('蘋果國際'):'International', Ch2UTF8('娛樂'):'Entertainment', 
-	Ch2UTF8('財經'):'Finance', Ch2UTF8('頭條要聞'):'HeadLine', 
-	Ch2UTF8('地產王'):'Estate'}
+RssFileName = {Ch2UTF8('頭條要聞'):'HeadLine'}
+
+#RssFileName = {Ch2UTF8('副刊'):'Supplement', Ch2UTF8('體育'):'Sport', 
+#	Ch2UTF8('蘋果國際'):'International', Ch2UTF8('娛樂'):'Entertainment', 
+#	Ch2UTF8('財經'):'Finance', Ch2UTF8('頭條要聞'):'HeadLine', 
+#	Ch2UTF8('地產王'):'Estate'}
 
 Contents = []
 Item = {}	
@@ -201,20 +209,9 @@ for Classify in NewsChunksDict:
 		print '【' + NewsList['subClassify'] + '】' + NewsList['title']
 		summary = []
 		summary.append(PageSorting(PageContent, True))
-		#Grab Next Page
-		try:
-			for NextPage in PageContent.find('div', {'id':'pagebar'}).find('ul', {'class':'number'}).findAll('a'):
-				print '\tGetNextPage'
-				PageContent = GetPage(NextPage['href'])
-				if PageContent is None:
-					break
-				summary.append(PageSorting(PageContent))
-				sleep(1)
-		except AttributeError:
-			pass
 		summary = [s for s in summary if s != None]
 		PastEntry(f, NewsList['title'], HomeUrl + NewsList['href'], ''.join(summary), NewsList['subClassify'])
-		sleep(2)
+		sleep(1)
 		#print ''.join(summary)
 	PastTail(f)
 	f.close()
