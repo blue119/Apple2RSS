@@ -131,7 +131,19 @@ def PageSorting(PageContent, First = False):
 				if '640pix' not in Large:
 					Large, Small, Alt = photo_parse2.findall(Photo)[0]
 				summary.append(CreatImgTable(Small, Large, Alt))
-		summary.append(Article)
+		# remove external link
+		if "<a href" in Article:
+			rm_link = str(Article).replace('<a href', '#rm_link#<a href')
+			rm_link = rm_link.split('#rm_link#')
+			for i in rm_link:
+				if "<a href" in i:
+					url, another = rm_ext_link.findall(i)[0]
+					summary.append(url)
+					summary.append(another)
+				else:
+					summary.append(i)
+		else:
+			summary.append(Article)
 	#print ''.join(summary)
 	return ''.join(summary)
 
@@ -150,12 +162,10 @@ AppleNewHome = urlopen( HomeUrl + 'applenews/todayapple').read()
 #AppleNewHome = unicode(AppleNewHome, 'big5', 'ignore')
 soupAppleNewHome = BeautifulSoup(AppleNewHome)
 
-RssFileName = {Ch2UTF8('頭條要聞'):'HeadLine'}
-
-#RssFileName = {Ch2UTF8('副刊'):'Supplement', Ch2UTF8('體育'):'Sport', 
-#	Ch2UTF8('蘋果國際'):'International', Ch2UTF8('娛樂'):'Entertainment', 
-#	Ch2UTF8('財經'):'Finance', Ch2UTF8('頭條要聞'):'HeadLine', 
-#	Ch2UTF8('地產王'):'Estate'}
+RssFileName = {Ch2UTF8('副刊'):'Supplement', Ch2UTF8('體育'):'Sport', 
+	Ch2UTF8('蘋果國際'):'International', Ch2UTF8('娛樂'):'Entertainment', 
+	Ch2UTF8('財經'):'Finance', Ch2UTF8('頭條要聞'):'HeadLine', 
+	Ch2UTF8('地產王'):'Estate'}
 
 Contents = []
 Item = {}	
