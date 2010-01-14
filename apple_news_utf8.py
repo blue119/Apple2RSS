@@ -117,6 +117,7 @@ def PageSorting(PageContent, First = False):
 	#                                       "Large"  "Small"    "Alt"
 	photo_parse = re.compile('.*javascript.*\'(.*)\',\'(.*)\',\'(.*)\',\'.*target=\".*')
 	photo_parse2 = re.compile('.*vascript.*javascript.*\'(.*)\',\'(.*)\',\'.*\',\'.*\'\);\">.*\"photo_summry\">(.*)<div\ .*')
+	rm_ext_link = re.compile('<.*href.*>(.*)<.*a>(.*)')
 	for i in Content:
 		Title, Photo, Article = p.findall(i)[0]
 		#print Title
