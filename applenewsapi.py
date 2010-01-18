@@ -62,10 +62,9 @@ every ad.
 					news_items['title'] = str(k.string)
 					news_items['href'] = str(k['href'])
 					news_contents.append(copy.copy(news_items))
-
-				self.news_list[classify_by_name] = copy.copy(news_contents)
 				counting += 1
-				news_contents = []
+			self.news_list[classify_by_name] = copy.copy(news_contents)
+			news_contents = []
 
 		
 	def page_parser(self, content, DEBUG=False):
@@ -140,3 +139,4 @@ every ad.
 		if DEBUG:
 			print(summary)
 		return ''.join(summary)
+
