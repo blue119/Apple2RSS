@@ -6,6 +6,7 @@ from time import gmtime, strftime, sleep
 import sys, re, copy, os
 import urllib2
 from BeautifulSoup import BeautifulSoup
+import shutil
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -31,9 +32,23 @@ def GetPage(URL):
             return None
     return BeautifulSoup(html_page)
 
+
+def write2file(filename, contents):
+	f = open(filename, 'w')
+	for i in range((len(contents) / 1024) + 1):
+		if((len(contents) - i * 1024) > 1024):
+			f.write(contents[i*1024:((i+1)*1024)])
+		else:
+			f.write(contents[i*1024:])
+	f.close()
+
 HomeUrl = 'http://tw.nextmedia.com/'
 AppleNewHome = urlopen( HomeUrl + 'applenews/todayapple').read()
 #AppleNewHome = unicode(AppleNewHome, 'big5', 'ignore')
+#f = open('todayapple', 'r')
+#AppleNewHome =  f.read()
+#f.close()
+
 soupAppleNewHome = BeautifulSoup(AppleNewHome)
 
 RssFileName = {Ch2UTF8('副刊'):'Supplement', Ch2UTF8('體育'):'Sport',
@@ -48,12 +63,12 @@ NewsChunksDict = {}
 ClassifySector = soupAppleNewHome.findAll('div', {'id':'nl_box'})
 for i in range(len(ClassifySector)):
     ClassifyName = ClassifySector[i].find('span', {'class':'nl_unit_bar_title'}).string
-    print ClassifyName
+    #print ClassifyName
     for j in range(len(ClassifySector[i].findAll('span', {'class':'nl_unit_second_title'}))):
         subClassifyName = ClassifySector[i].findAll('span', {'class':'nl_unit_second_title'})[j].string
-        print subClassifyName
+        #print subClassifyName
         for k in ClassifySector[i].findAll('div', {'id':'nl_unitlist'})[j].findAll('a'):
-            print '[%s] %s : %s' %(subClassifyName, k.string, k['href'])
+            #print '[%s] %s : %s' %(subClassifyName, k.string, k['href'])
             Item['subClassify'] = str(subClassifyName)
             Item['title'] = str(k.string)
             Item['href'] = str(k['href'])
@@ -61,18 +76,29 @@ for i in range(len(ClassifySector)):
     NewsChunksDict[ClassifyName] = copy.copy(Contents)
     Contents = []
 
+path_name = os.path.basename(NewsChunksDict[Ch2UTF8('頭條要聞')][0]['href'])
+
+# Check folder
+if os.path.exists(path_name):
+	try:
+		print 'Duplicate: delete older file'
+		os.rmdir(path_name)
+	except OSError:
+		shutil.rmtree(path_name)
+
+os.makedirs(path_name)
 
 p = re.compile('^.*art_id/([0-9]+)/.*$')
 basename = ''
-file_path = ''
 #/applenews/article/art_id/32242763/IssueID/20100119
 for Classify in NewsChunksDict:
 	print '<<< ' + Classify + ' >>>'
 	for NewsList in NewsChunksDict[Classify]:
 		basename = p.findall(NewsList['href'])[0] + '.html'
-		file_path = os.path.basename(NewsList['href'])
-		print '【' + NewsList['subClassify'] + '】' + NewsList['title'] + ' ---> ' + file_path + '/' + basename
+		full_path = path_name + '/' + basename
+		print '【' + NewsList['subClassify'] + '】' + NewsList['title'] + ' ---> ' + full_path
+		web_page = GetPage( HomeUrl + NewsList['href'])
+		write2file(full_path, str(web_page))
 #	f = open(RssFileName[Classify] + '_RSS.html', 'w')
-
 
 
