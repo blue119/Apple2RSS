@@ -25,6 +25,13 @@ every ad.
 		self.catalog_page = urlopen( self.home_url + 'applenews/todayapple').read()
 		self.catalog_page = BeautifulSoup(self.catalog_page)
 
+	def show_news_list(self):
+		for i in self.news_list:
+			print '<<< ' + i + ' >>>'
+			for j in self.news_list[i]:
+				print '[' + j['subClassify'] + '] ' + j['title']
+			print ''
+
 	def get_title(self, PageContent):
 		p = re.compile('^<title>(.*)\ \|\ .*\ \|\ .*\ \|.*\|.*</title>')
 		Title = p.findall(str(PageContent.title).replace('\n', ''))
@@ -62,10 +69,9 @@ every ad.
 					news_items['title'] = str(k.string)
 					news_items['href'] = str(k['href'])
 					news_contents.append(copy.copy(news_items))
-
-				self.news_list[classify_by_name] = copy.copy(news_contents)
 				counting += 1
-				news_contents = []
+			self.news_list[classify_by_name] = copy.copy(news_contents)
+			news_contents = []
 
 		
 	def page_parser(self, content, DEBUG=False):
@@ -86,9 +92,9 @@ every ad.
 			img = str(page_content.find('script', {'language':'javascript'}))
 			p = re.compile('g_ImageTable.*\"(.*)\",\ \"(.*)\",.*javascript:.*\(\'(.*)\',\'http.*\',\'.*\',\'.*\)\"\)')
 			result = p.findall(img)
-			SmallIMG, BigIMG, titleIMG = result[0]
+			SmallIMG, titleIMG, BigIMG = result[0]
 			summary.append([SmallIMG, BigIMG, titleIMG])
-		except AttributeError: #No Picture in intro
+		except: #No Picture in intro
 			pass
 
 		#Grab alticl section
@@ -139,4 +145,5 @@ every ad.
 
 		if DEBUG:
 			print(summary)
-		return ''.join(summary)
+		return summary
+
