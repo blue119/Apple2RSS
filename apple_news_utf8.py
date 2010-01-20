@@ -163,11 +163,13 @@ AppleNewHome = urlopen( HomeUrl + 'applenews/todayapple').read()
 #AppleNewHome = unicode(AppleNewHome, 'big5', 'ignore')
 soupAppleNewHome = BeautifulSoup(AppleNewHome)
 
-RssFileName = {Ch2UTF8('副刊'):'Supplement', Ch2UTF8('體育'):'Sport', 
-	Ch2UTF8('蘋果國際'):'International', Ch2UTF8('娛樂'):'Entertainment', 
-	Ch2UTF8('財經'):'Finance', Ch2UTF8('頭條要聞'):'HeadLine', 
-	Ch2UTF8('地產王'):'Estate'}
+#RssFileName = {Ch2UTF8('副刊'):'Supplement', Ch2UTF8('體育'):'Sport', 
+#	Ch2UTF8('蘋果國際'):'International', Ch2UTF8('娛樂'):'Entertainment', 
+#	Ch2UTF8('財經'):'Finance', Ch2UTF8('頭條要聞'):'HeadLine', 
+#	Ch2UTF8('地產王'):'Estate'}
 
+RssFileName = {	Ch2UTF8('財經'):'Finance', Ch2UTF8('頭條要聞'):'HeadLine', 
+	Ch2UTF8('地產王'):'Estate'}
 Contents = []
 Item = {}	
 NewsChunksDict = {}

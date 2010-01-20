@@ -78,7 +78,8 @@ every ad.
 		"""
 		"""
 		summary = []
-		summary.append(self.get_title(content))
+		temp_dic = {}
+		temp_dic['title'] = self.get_title(content)
 		if DEBUG:
 			print('Title: %s' %summary[0])
 
@@ -87,13 +88,14 @@ every ad.
 		# some page have no tag for page_content
 		if page_content is None:
 			page_content = content
-
+		
+		# grab story picture
 		try:
 			img = str(page_content.find('script', {'language':'javascript'}))
 			p = re.compile('g_ImageTable.*\"(.*)\",\ \"(.*)\",.*javascript:.*\(\'(.*)\',\'http.*\',\'.*\',\'.*\)\"\)')
 			result = p.findall(img)
 			SmallIMG, titleIMG, BigIMG = result[0]
-			summary.append([SmallIMG, BigIMG, titleIMG])
+			temp_dic['pic'] = [titleIMG, BigIMG, SmallIMG]
 		except: #No Picture in intro
 			pass
 
@@ -101,19 +103,19 @@ every ad.
 		p = re.compile('.*iclickAdBody_Start\"\>\<\/span\>(.*)\<span\ name\=\"iclickAdBody_End\"\ id\=.*')
 		page_content = BeautifulSoup(p.findall(str(page_content).replace('\n',''))[0])
 		#Abstract
-		summary.append(str(page_content.find('p', {'class':'summary'})))
+		temp_dic['summary'] = str(page_content.find('p', {'class':'summary'}))
+		summary.append(temp_dic)
+		temp_dic.clear()
 		#split
 		page_content = str(page_content).replace('<h2 class="article_title">', '#split#<h2 class="article_title">')
 		page_content = page_content.split('#split#')
-		#pop Abstract
-		del page_content[0]
 		#                                           "Title"  "Photo"                    "Article"
 		p = re.compile('.*<h2 class=\"article_title\">(.*)</h2>(.*)<p class="article_text">(.*)<div class=\"spacer\"></div>.*')
 		#                                       "Large"  "Small"    "Alt"
 		photo_parse = re.compile('.*javascript.*\'(.*)\',\'(.*)\',\'(.*)\',\'.*target=\".*')
 		photo_parse2 = re.compile('.*vascript.*javascript.*\'(.*)\',\'(.*)\',\'.*\',\'.*\'\);\">.*\"photo_summry\">(.*)<div\ .*')
 		rm_ext_link = re.compile('<.*href.*>(.*)<.*a>(.*)')
-		for i in page_content:
+		for i in page_content[1:]:
 			Title, Photo, Article = p.findall(i)[0]
 			#print Title
 			summary.append('<b>' + Title + '</b><br />')
