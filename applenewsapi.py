@@ -7,7 +7,8 @@
 from urllib import urlopen
 from BeautifulSoup import BeautifulSoup
 from time import gmtime, strftime, sleep
-import sys, re, copy
+from copy import copy
+import sys, re
 import urllib2
 
 reload(sys)
@@ -41,6 +42,13 @@ every ad.
 			print 'Can not parsing this title : "' + str(PageContent.title) + '"'
 			Title = None
 			return Title
+
+	def ex_html_tag(self, s):
+		tmp_s = re.split('>', s.replace(' ', ''))
+		tmp = []
+		for i in tmp_s[:-1]:
+			tmp.append(re.compile('(.*)\<.*').findall(i)[0])
+		return ''.join(tmp)
 
 	def get_list(self, DEBUG = False):
 		"""
