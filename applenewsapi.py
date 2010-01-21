@@ -80,7 +80,6 @@ every ad.
 				counting += 1
 			self.news_list[classify_by_name] = copy.copy(news_contents)
 			news_contents = []
-
 		
 	def page_parser(self, content, DEBUG=False):
 		"""
