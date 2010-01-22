@@ -7,7 +7,8 @@
 from urllib import urlopen
 from BeautifulSoup import BeautifulSoup
 from time import gmtime, strftime, sleep
-import sys, re, copy
+from copy import copy
+import sys, re
 import urllib2
 
 reload(sys)

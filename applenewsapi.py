@@ -76,9 +76,9 @@ every ad.
 					news_items['subClassify'] = str(sub_classify_by_name)
 					news_items['title'] = str(k.string)
 					news_items['href'] = str(k['href'])
-					news_contents.append(copy.copy(news_items))
+					news_contents.append(copy(news_items))
 				counting += 1
-			self.news_list[classify_by_name] = copy.copy(news_contents)
+			self.news_list[classify_by_name] = copy(news_contents)
 			news_contents = []
 		
 	def page_parser(self, content, DEBUG=False):
@@ -102,7 +102,7 @@ every ad.
 			p = re.compile('g_ImageTable.*\"(.*)\",\ \"(.*)\",.*javascript:.*\(\'(.*)\',\'http.*\',\'.*\',\'.*\)\"\)')
 			result = p.findall(img)
 			SmallIMG, titleIMG, BigIMG = result[0]
-			temp_dic['pic'] = [titleIMG, BigIMG, SmallIMG]
+			temp_dic['pic'] = [titleIMG, SmallIMG, BigIMG]
 		except: #No Picture in intro
 			pass
 
@@ -111,7 +111,7 @@ every ad.
 		page_content = BeautifulSoup(p.findall(str(page_content).replace('\n',''))[0])
 		#Abstract
 		temp_dic['summary'] = str(page_content.find('p', {'class':'summary'}))
-		summary.append(temp_dic)
+		summary.append(copy(temp_dic))
 		temp_dic.clear()
 		#split
 		page_content = str(page_content).replace('<h2 class="article_title">', '#split#<h2 class="article_title">')
@@ -125,19 +125,21 @@ every ad.
 		for i in page_content[1:]:
 			Title, Photo, Article = p.findall(i)[0]
 			#print Title
-			summary.append('<b>' + Title + '</b><br />')
+			temp_dic['article_title'] = '<b>' + Title + '</b><br />'
 
 			if Photo is not '':
 				if 'photo_area' in Photo:
+					temp_dic['photo_area'] = []
 					for i in BeautifulSoup(Photo).findAll('div',{'class':'photo_loader2'}):
 						Large, Small, Alt = photo_parse.findall(str(i))[0]
-						summary.append([Small, Large, Alt])
+						temp_dic['photo_area'].append([Alt, Small, Large])
 				else:
 					Large, Small, Alt = photo_parse.findall(Photo)[0]
 					if '640pix' not in Large:
 						Large, Small, Alt = photo_parse2.findall(Photo)[0]
-					summary.append([Small, Large, Alt])
-
+					temp_dic['photo'] = [Alt, Small, Large]
+			
+			temp_dic['article_text'] = '<p>'
 			# remove external link
 			if "<a href" in Article:
 				rm_link = str(Article).replace('<a href', '#rm_link#<a href')
@@ -145,12 +147,16 @@ every ad.
 				for i in rm_link:
 					if "<a href" in i:
 						url, another = rm_ext_link.findall(i)[0]
-						summary.append(url)
-						summary.append(another)
+						temp_dic['article_text'] += url + another
+						#summary.append(url)
+						#summary.append(another)
 					else:
-						summary.append(i)
+						temp_dic['article_text'] += i
 			else:
-				summary.append(Article)
+				temp_dic['article_text'] += Article
+
+			summary.append(copy(temp_dic))
+			temp_dic.clear()
 
 		if DEBUG:
 			print(summary)
