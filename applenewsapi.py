@@ -76,9 +76,9 @@ every ad.
 					news_items['subClassify'] = str(sub_classify_by_name)
 					news_items['title'] = str(k.string)
 					news_items['href'] = str(k['href'])
-					news_contents.append(copy.copy(news_items))
+					news_contents.append(copy(news_items))
 				counting += 1
-			self.news_list[classify_by_name] = copy.copy(news_contents)
+			self.news_list[classify_by_name] = copy(news_contents)
 			news_contents = []
 		
 	def page_parser(self, content, DEBUG=False):

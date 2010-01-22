@@ -100,18 +100,23 @@ class rss_tool():
 
 if __name__ == '__main__':
 	from applenewsapi import apple_news_api
-	kk = apple_news_api()
-	kk.get_list()
-	#kk.show_news_list()
+	main_story = True # for debug, only download main sotry page then put into /tmp/man_story.html
+	news_api = apple_news_api()
+	news_api.get_list()
+	#news_api.show_news_list()
 
-	rss = rss_tool()
-	#content = rss.GetPage('http://tw.nextmedia.com/applenews/article/art_id/32242785/IssueID/20100119')
-	#rss.write2file(rss.page_compose(kk.page_parser(content)))
+	rss_api = rss_tool()
+	#content = rss_api.GetPage('http://tw.nextmedia.com/applenews/article/art_id/32242785/IssueID/20100119')
+	#rss_api.write2file(rss_api.page_compose(news_api.page_parser(content)))
+	
+	if main_story:
+		PageContent = rss_api.GetPage(news_api.home_url + news_api.news_list[rss_api.Ch2UTF8('頭條要聞')][0]['href'])
+		rss_api.page_compose(news_api.page_parser(PageContent))
 
-	RssFileName = {rss.Ch2UTF8('副刊'):'Supplement', rss.Ch2UTF8('體育'):'Sport', 
-		rss.Ch2UTF8('蘋果國際'):'International', rss.Ch2UTF8('娛樂'):'Entertainment', 
-		rss.Ch2UTF8('財經'):'Finance', rss.Ch2UTF8('頭條要聞'):'HeadLine', 
-		rss.Ch2UTF8('地產王'):'Estate'}
+	RssFileName = {rss_api.Ch2UTF8('副刊'):'Supplement', rss_api.Ch2UTF8('體育'):'Sport', 
+		rss_api.Ch2UTF8('蘋果國際'):'International', rss_api.Ch2UTF8('娛樂'):'Entertainment', 
+		rss_api.Ch2UTF8('財經'):'Finance', rss_api.Ch2UTF8('頭條要聞'):'HeadLine', 
+		rss_api.Ch2UTF8('地產王'):'Estate'}
 
 	#NewsChunksDict debug
 	#for ClassifyName in NewsChunksDict:
@@ -119,31 +124,31 @@ if __name__ == '__main__':
 	#	for NewsList in NewsChunksDict[ClassifyName]:
 	#		print '【' + NewsList['subClassify'] + '】' + NewsList['Title'] + NewsList['HREF']
 	PageContent = []
-	for Classify in kk.news_list:
+	for Classify in news_api.news_list:
 		try:
 			f = open(RssFileName[Classify] + '_RSS.html', 'w')
 		except KeyError:
 			print '%s, not support\n' % (Classify)
 			continue
-		rss.PastHeader(f, str(Classify))
+		rss_api.PastHeader(f, str(Classify))
 		print '\n------------- ' + Classify + ' -------------'
-		for NewsList in kk.news_list[Classify]:
+		for NewsList in news_api.news_list[Classify]:
 			try:
-				PageContent = rss.GetPage(kk.home_url + NewsList['href'])
+				PageContent = rss_api.GetPage(news_api.home_url + NewsList['href'])
 			except IOError:
 				#try again
 				try:
-					PageContent = rss.GetPage(kk.home_url + NewsList['href'])
+					PageContent = rss_api.GetPage(news_api.home_url + NewsList['href'])
 				except IOError:
 					#abandent
 					continue
 			print '【' + NewsList['subClassify'] + '】' + NewsList['title']
 			summary = []
-			summary.append(rss.page_compose(kk.page_parser(PageContent)))
+			summary.append(rss_api.page_compose(news_api.page_parser(PageContent)))
 			#summary = [s for s in summary if s != None]
-			rss.PastEntry(f, NewsList['title'], kk.home_url + NewsList['href'], ''.join(summary), NewsList['subClassify'])
+			rss_api.PastEntry(f, NewsList['title'], news_api.home_url + NewsList['href'], ''.join(summary), NewsList['subClassify'])
 			sleep(1)
 			#print ''.join(summary)
-		rss.PastTail(f)
+		rss_api.PastTail(f)
 		f.close()
 
