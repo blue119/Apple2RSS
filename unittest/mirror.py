@@ -5,11 +5,12 @@ from urllib import urlopen
 from time import gmtime, strftime, sleep
 import sys, re, copy, os
 import urllib2
-from BeautifulSoup import BeautifulSoup
 import shutil
 
 reload(sys)
+sys.path.insert(0, '../')
 sys.setdefaultencoding('utf8')
+from BeautifulSoup import BeautifulSoup
 
 # http://stackoverflow.com/questions/273192/python-best-way-to-create-directory-if-it-doesnt-exist-for-file-write
 # http://www.penzilla.net/tutorials/python/fileio/
