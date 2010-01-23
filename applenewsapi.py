@@ -83,10 +83,22 @@ every ad.
 		
 	def page_parser(self, content, DEBUG=False):
 		"""
+return format:
+	[{summery}, {article}, ...]
+
+	summery
+	temp_dic['title'] -> string
+	temp_dic['pic'] -> ['title', 'small img', 'big img']
+	temp_dic['summary'] -> string
+
+	article
+	temp_dic['article_title'] -> string
+	temp_dic['photo'] -> ['title', 'small img', 'big img'] || temp_dic['photo_area'] -> [temp_dic['photo'], ...]
+	temp_dic['article_text'] -> string
 		"""
 		summary = []
 		temp_dic = {}
-		temp_dic['title'] = self.get_title(content)
+		temp_dic['title'] = '<h2>' + self.get_title(content) + '</h2>'
 		if DEBUG:
 			print('Title: %s' %summary[0])
 
@@ -125,7 +137,7 @@ every ad.
 		for i in page_content[1:]:
 			Title, Photo, Article = p.findall(i)[0]
 			#print Title
-			temp_dic['article_title'] = '<b>' + Title + '</b><br />'
+			temp_dic['article_title'] = '<p><b>' + Title + '</b><br />'
 
 			if Photo is not '':
 				if 'photo_area' in Photo:
@@ -139,7 +151,7 @@ every ad.
 						Large, Small, Alt = photo_parse2.findall(Photo)[0]
 					temp_dic['photo'] = [Alt, Small, Large]
 			
-			temp_dic['article_text'] = '<p>'
+			temp_dic['article_text'] = ''
 			# remove external link
 			if "<a href" in Article:
 				rm_link = str(Article).replace('<a href', '#rm_link#<a href')
@@ -148,8 +160,6 @@ every ad.
 					if "<a href" in i:
 						url, another = rm_ext_link.findall(i)[0]
 						temp_dic['article_text'] += url + another
-						#summary.append(url)
-						#summary.append(another)
 					else:
 						temp_dic['article_text'] += i
 			else:

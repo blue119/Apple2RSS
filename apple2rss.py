@@ -44,7 +44,8 @@ class rss_tool():
 		f.write('<description><![CDATA[' + summary + ']]></description>\n')
 		f.write('</item>\n')
 
-	def CreatImgTable(self, SmallIMG = '', BigIMG = '', titleIMG = ''):
+	def CreatImgTable(self, photo_list = ['', '', '']):
+		titleIMG, SmallIMG, BigIMG = photo_list
 		if '.svg' in SmallIMG:
 			SmallIMG = HomeUrl + SmallIMG[1:]
 		if '.svg' in BigIMG:
@@ -61,13 +62,26 @@ class rss_tool():
 		return ''.join(TableString)
 	
 	def page_compose(self, content):
-		rss = []
-		for i in content:
-			if type(i) is type([]):
-				rss.append(self.CreatImgTable(SmallIMG = i[0], BigIMG = i[1], titleIMG = i[2]))
+		compose = []
+		# summary
+		compose.append(content[0]['title'])
+		# the content may not have picture in summary.
+		if 'pic' in content[0].keys():
+			compose.append(self.CreatImgTable(content[0]['pic']))
+		compose.append(content[0]['summary'])
+		for i in content[1:]:
+			#extract photo
+			if 'photo_area' not in i.keys():
+				if 'photo' in i.keys():
+					compose.append(self.CreatImgTable(i['photo']))
 			else:
-				rss.append(i)
-		return ''.join(rss)
+				for j in i['photo_area']:
+					compose.append(self.CreatImgTable(j))
+			#extract title
+			compose.append(i['article_title'])
+			#extract text
+			compose.append(i['article_text'])
+		return ''.join(compose)
 
 	def GetPage(self, URL):
 		try:
@@ -89,14 +103,14 @@ class rss_tool():
 	def Ch2UTF8(self, char):
 		return unicode(char, 'utf-8', 'ignore')
 
-	def write2file(self, b, filename = 'a.html'):
+	def write2file(self, content, filename = 'a.html'):
 		file_path = '/tmp/' + filename
 		f = open(file_path, 'w')
-		for i in range((len(b) / 1024) + 1):
-			if((len(b) - i * 1024) > 1024):
-				f.write(b[i*1024:((i+1)*1024)])
+		for i in range((len(content) / 1024) + 1):
+			if((len(content) - i * 1024) > 1024):
+				f.write(content[i*1024:((i+1)*1024)])
 			else:
-				f.write(b[i*1024:])
+				f.write(content[i*1024:])
 		f.close()
 
 if __name__ == '__main__':
@@ -104,52 +118,58 @@ if __name__ == '__main__':
 	main_story = True # for debug, only download main sotry page then put into /tmp/man_story.html
 	news_api = apple_news_api()
 	news_api.get_list()
-	#news_api.show_news_list()
+	news_api.show_news_list()
 
 	rss_api = rss_tool()
 	#content = rss_api.GetPage('http://tw.nextmedia.com/applenews/article/art_id/32242785/IssueID/20100119')
 	#rss_api.write2file(rss_api.page_compose(news_api.page_parser(content)))
 	
 	if main_story:
+		print('Get [%s]' %news_api.news_list[rss_api.Ch2UTF8('頭條要聞')][0]['title'])
 		PageContent = rss_api.GetPage(news_api.home_url + news_api.news_list[rss_api.Ch2UTF8('頭條要聞')][0]['href'])
-		rss_api.page_compose(news_api.page_parser(PageContent))
+		sys.stdout.write('[Parsing] -> ')
+		PageContent = news_api.page_parser(PageContent)
+		sys.stdout.write('[Compose] -> ')
+		PageContent = rss_api.page_compose(PageContent)
+		print('[Write2File]')
+		rss_api.write2file(PageContent, 'main_story.html')
+	else:
+		RssFileName = {rss_api.Ch2UTF8('副刊'):'Supplement', rss_api.Ch2UTF8('體育'):'Sport', 
+			rss_api.Ch2UTF8('蘋果國際'):'International', rss_api.Ch2UTF8('娛樂'):'Entertainment', 
+			rss_api.Ch2UTF8('財經'):'Finance', rss_api.Ch2UTF8('頭條要聞'):'HeadLine', 
+			rss_api.Ch2UTF8('地產王'):'Estate'}
 
-	RssFileName = {rss_api.Ch2UTF8('副刊'):'Supplement', rss_api.Ch2UTF8('體育'):'Sport', 
-		rss_api.Ch2UTF8('蘋果國際'):'International', rss_api.Ch2UTF8('娛樂'):'Entertainment', 
-		rss_api.Ch2UTF8('財經'):'Finance', rss_api.Ch2UTF8('頭條要聞'):'HeadLine', 
-		rss_api.Ch2UTF8('地產王'):'Estate'}
-
-	#NewsChunksDict debug
-	#for ClassifyName in NewsChunksDict:
-	#	print '------------- ' + ClassifyName + ' -------------'
-	#	for NewsList in NewsChunksDict[ClassifyName]:
-	#		print '【' + NewsList['subClassify'] + '】' + NewsList['Title'] + NewsList['HREF']
-	PageContent = []
-	for Classify in news_api.news_list:
-		try:
-			f = open(RssFileName[Classify] + '_RSS.html', 'w')
-		except KeyError:
-			print '%s, not support\n' % (Classify)
-			continue
-		rss_api.PastHeader(f, str(Classify))
-		print '\n------------- ' + Classify + ' -------------'
-		for NewsList in news_api.news_list[Classify]:
+		#NewsChunksDict debug
+		#for ClassifyName in NewsChunksDict:
+		#	print '------------- ' + ClassifyName + ' -------------'
+		#	for NewsList in NewsChunksDict[ClassifyName]:
+		#		print '【' + NewsList['subClassify'] + '】' + NewsList['Title'] + NewsList['HREF']
+		PageContent = []
+		for Classify in news_api.news_list:
 			try:
-				PageContent = rss_api.GetPage(news_api.home_url + NewsList['href'])
-			except IOError:
-				#try again
+				f = open(RssFileName[Classify] + '_RSS.html', 'w')
+			except KeyError:
+				print '%s, not support\n' % (Classify)
+				continue
+			rss_api.PastHeader(f, str(Classify))
+			print '\n------------- ' + Classify + ' -------------'
+			for NewsList in news_api.news_list[Classify]:
 				try:
 					PageContent = rss_api.GetPage(news_api.home_url + NewsList['href'])
 				except IOError:
-					#abandent
-					continue
-			print '【' + NewsList['subClassify'] + '】' + NewsList['title']
-			summary = []
-			summary.append(rss_api.page_compose(news_api.page_parser(PageContent)))
-			#summary = [s for s in summary if s != None]
-			rss_api.PastEntry(f, NewsList['title'], news_api.home_url + NewsList['href'], ''.join(summary), NewsList['subClassify'])
-			sleep(1)
-			#print ''.join(summary)
-		rss_api.PastTail(f)
-		f.close()
+					#try again
+					try:
+						PageContent = rss_api.GetPage(news_api.home_url + NewsList['href'])
+					except IOError:
+						#abandent
+						continue
+				print '【' + NewsList['subClassify'] + '】' + NewsList['title']
+				summary = []
+				summary.append(rss_api.page_compose(news_api.page_parser(PageContent)))
+				#summary = [s for s in summary if s != None]
+				rss_api.PastEntry(f, NewsList['title'], news_api.home_url + NewsList['href'], ''.join(summary), NewsList['subClassify'])
+				sleep(1)
+				#print ''.join(summary)
+			rss_api.PastTail(f)
+			f.close()
 
