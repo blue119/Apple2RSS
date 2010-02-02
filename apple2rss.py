@@ -1,13 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
-#v0.1 can be run but not is good.
-#v0.2 patch to support new format
-
 from urllib import urlopen
 from BeautifulSoup import BeautifulSoup
 from time import gmtime, strftime, sleep
 from copy import copy
+from applenewsapi import apple_news_api
+from socket import setdefaulttimeout
 import sys, re
 import urllib2
 
@@ -64,7 +63,7 @@ class rss_tool():
 	def page_compose(self, content):
 		compose = []
 		# summary
-		compose.append(content[0]['title'])
+		#compose.append(content[0]['title'])
 		# the content may not have picture in summary.
 		if 'pic' in content[0].keys():
 			compose.append(self.CreatImgTable(content[0]['pic']))
@@ -114,8 +113,16 @@ class rss_tool():
 		f.close()
 
 if __name__ == '__main__':
-	from applenewsapi import apple_news_api
+	"""
+	Reference:
+		HOWTO Fetch Internet Resources with Python: http://www.voidspace.org.uk/python/articles/urllib2.shtml
+	"""
+	# some connection timeout in seconds
+	timeout = 10
+	setdefaulttimeout(timeout)
+
 	main_story = True # for debug, only download main sotry page then put into /tmp/man_story.html
+	#main_story = False # for debug, only download main sotry page then put into /tmp/man_story.html
 	news_api = apple_news_api()
 	news_api.get_list()
 	news_api.show_news_list()
