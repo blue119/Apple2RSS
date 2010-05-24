@@ -26,7 +26,8 @@ class rss_tool():
 		f.write('<rights><![CDATA[壹蘋果網絡]]></rights>\n')
 		f.write('<language>zh-TW</language>\n')
 		f.write('<ttl>60</ttl>\n')
-		f.write('<update>' + strftime("%a, %d %b %Y %H:%M:%S +0800", gmtime()) + '</update>\n')
+		f.write('<update>' + strftime("%a, %d %b %Y %H:%M:%S") + '</update>\n')
+		#f.write('<update>' + strftime("%a, %d %b %Y %H:%M:%S +0800", gmtime()) + '</update>\n')
 
 	def PastTail(self, f):
 		f.write('\n')
@@ -37,7 +38,8 @@ class rss_tool():
 		f.write('\n')
 		f.write('<item>\n')
 		f.write('<title><![CDATA[【' + classify + '】' + title + ']]></title>\n')
-		f.write('<pubDate>' + strftime("%a, %d %b %Y %H:%M:%S +0800", gmtime()) + '</pubDate>\n')
+		f.write('<pubDate>' + strftime("%a, %d %b %Y %H:%M:%S") + '</pubDate>\n')
+		#f.write('<pubDate>' + strftime("%a, %d %b %Y %H:%M:%S +0800", gmtime()) + '</pubDate>\n')
 		#f.write('<author><![CDATA[' + subclassify +']]></author>\n')
 		#f.write('<link><![CDATA[' + link + ']]></link>\n')
 		f.write('<description><![CDATA[' + summary + ']]></description>\n')
@@ -121,8 +123,8 @@ if __name__ == '__main__':
 	timeout = 10
 	setdefaulttimeout(timeout)
 
-	main_story = True # for debug, only download main sotry page then put into /tmp/man_story.html
-	#main_story = False # for debug, only download main sotry page then put into /tmp/man_story.html
+	#main_story = True # for debug, only download main sotry page then put into /tmp/man_story.html
+	main_story = False # for debug, only download main sotry page then put into /tmp/man_story.html
 	news_api = apple_news_api()
 	news_api.get_list()
 	news_api.show_news_list()
@@ -141,11 +143,19 @@ if __name__ == '__main__':
 		print('[Write2File]')
 		rss_api.write2file(PageContent, 'main_story.html')
 	else:
-		RssFileName = {rss_api.Ch2UTF8('副刊'):'Supplement', rss_api.Ch2UTF8('體育'):'Sport', 
-			rss_api.Ch2UTF8('蘋果國際'):'International', rss_api.Ch2UTF8('娛樂'):'Entertainment', 
-			rss_api.Ch2UTF8('財經'):'Finance', rss_api.Ch2UTF8('頭條要聞'):'HeadLine', 
-			rss_api.Ch2UTF8('地產王'):'Estate'}
-
+		#RssFileName = {rss_api.Ch2UTF8('副刊'):'Supplement', rss_api.Ch2UTF8('體育'):'Sport', 
+	#		rss_api.Ch2UTF8('蘋果國際'):'International', rss_api.Ch2UTF8('娛樂'):'Entertainment', 
+	#		rss_api.Ch2UTF8('財經'):'Finance', rss_api.Ch2UTF8('頭條要聞'):'HeadLine', 
+	#		rss_api.Ch2UTF8('地產王'):'Estate'}
+		RssFileName = {
+			rss_api.Ch2UTF8('副刊'):'Supplement', 
+			rss_api.Ch2UTF8('體育'):'Sport', 
+			rss_api.Ch2UTF8('蘋果國際'):'International', 
+			rss_api.Ch2UTF8('娛樂'):'Entertainment', 
+			rss_api.Ch2UTF8('財經'):'Finance', 
+			rss_api.Ch2UTF8('頭條要聞'):'HeadLine', 
+			rss_api.Ch2UTF8('地產王'):'Estate'
+			}
 		#NewsChunksDict debug
 		#for ClassifyName in NewsChunksDict:
 		#	print '------------- ' + ClassifyName + ' -------------'
