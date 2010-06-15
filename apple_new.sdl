@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<documentList xmlns="http://www.distantchord.com/sdl/">
+    <defaultDocument backup="false" launchable="false" caching="default" encoding="Big5" indexFeeds="false" urlInfo="true">
+        <source maxLinkDepth="1"></source>
+        <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
+        <destinations>
+            <directory>./</directory>
+        </destinations>
+    </defaultDocument>
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2008-06-10T11:47:10" indexFeeds="false" lastConverted="2010-05-24T07:13:46" lastUpdated="2010-05-24T07:13:46" lastAttempted="2010-05-24T07:10:40" size="15867901" urlInfo="true">
+        <name>Supplement</name>
+        <category>MY</category>
+        <source maxLinkDepth="1" checksum="1504228201">http://localhost:8000/Supplement_RSS.html</source>
+        <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
+        <destinations>
+            <directory>./</directory>
+        </destinations>
+    </document>
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2008-06-10T11:47:10" indexFeeds="false" lastConverted="2010-05-24T07:08:57" lastUpdated="2010-05-24T07:08:57" lastAttempted="2010-05-24T07:07:41" size="5145014" urlInfo="true">
+        <name>Finance</name>
+        <category>MY</category>
+        <source maxLinkDepth="1" checksum="2312907798">http://localhost:8000/Finance_RSS.html</source>
+        <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
+        <destinations>
+            <directory>./</directory>
+        </destinations>
+    </document>
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2008-06-10T11:47:10" indexFeeds="false" lastConverted="2010-05-24T07:09:31" lastUpdated="2010-05-24T07:09:31" lastAttempted="2010-05-24T07:08:57" size="2552419" urlInfo="true">
+        <name>International</name>
+        <category>MY</category>
+        <source maxLinkDepth="1" checksum="2696726005">http://localhost:8000/International_RSS.html</source>
+        <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
+        <destinations>
+            <directory>./</directory>
+        </destinations>
+    </document>
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2008-06-10T11:47:10" indexFeeds="false" lastConverted="2010-05-24T07:10:40" lastUpdated="2010-05-24T07:10:40" lastAttempted="2010-05-24T07:09:31" size="5869274" urlInfo="true">
+        <name>Sport</name>
+        <category>MY</category>
+        <source maxLinkDepth="1" checksum="2618198939">http://localhost:8000/Sport_RSS.html</source>
+        <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
+        <destinations>
+            <directory>./</directory>
+        </destinations>
+    </document>
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2009-04-03T02:55:01" indexFeeds="false" lastConverted="2010-05-24T07:11:43" lastUpdated="2010-05-24T07:11:43" lastAttempted="2010-05-24T07:07:47" size="16771827" urlInfo="true">
+        <name>HeadLine</name>
+        <category>MY</category>
+        <source maxLinkDepth="1" checksum="3849261083">http://localhost:8000/HeadLine_RSS.html</source>
+        <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
+        <destinations>
+            <directory>./</directory>
+        </destinations>
+    </document>
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2009-04-03T02:55:01" indexFeeds="false" lastConverted="2010-05-24T07:07:47" lastUpdated="2010-05-24T07:07:47" lastAttempted="2010-05-24T07:07:41" size="267442" urlInfo="true">
+        <name>Estate</name>
+        <category>MY</category>
+        <source maxLinkDepth="1" checksum="393233841">http://localhost:8000/Estate_RSS.html</source>
+        <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
+        <destinations>
+            <directory>./</directory>
+        </destinations>
+    </document>
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2009-12-18T08:26:36" indexFeeds="false" lastConverted="2010-01-13T10:46:35" lastUpdated="2010-01-13T10:46:35" lastAttempted="2010-05-24T07:08:57" size="10913134" urlInfo="true">
+        <name>Home</name>
+        <category>MY</category>
+        <source maxLinkDepth="1" checksum="4132337164">http://localhost:8000/Home_RSS.html</source>
+        <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
+        <destinations>
+            <directory>./</directory>
+        </destinations>
+    </document>
+    <uiSettings>
+        <columns>
+            <column id="1" enabled="true" width="162"/>
+            <column id="2" enabled="true" width="77"/>
+            <column id="4" enabled="true" width="126"/>
+            <column id="3" enabled="true" width="98"/>
+            <column id="5" enabled="false" width="0"/>
+            <column id="10" enabled="false" width="0"/>
+            <column id="13" enabled="false" width="0"/>
+            <column id="8" enabled="false" width="0"/>
+            <column id="7" enabled="false" width="0"/>
+            <column id="6" enabled="false" width="0"/>
+            <column id="12" enabled="false" width="0"/>
+            <column id="9" enabled="false" width="0"/>
+            <column id="11" enabled="false" width="0"/></columns>
+    </uiSettings>
+</documentList>

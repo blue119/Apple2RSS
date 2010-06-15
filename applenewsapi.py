@@ -98,7 +98,7 @@ return format:
 		"""
 		summary = []
 		temp_dic = {}
-		temp_dic['title'] = '<h2>' + self.get_title(content) + '</h2>'
+		temp_dic['title'] = '<b>' + self.get_title(content) + '</b>'
 		if DEBUG:
 			print('Title: %s' %summary[0])
 
