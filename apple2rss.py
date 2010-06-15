@@ -10,6 +10,7 @@ from time import gmtime, strftime, sleep
 from copy import copy
 import sys, re
 import urllib2
+import optparse
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -113,7 +114,34 @@ class rss_tool():
 				f.write(content[i*1024:])
 		f.close()
 
+__version__ = "apple2rss Ver:0.0.1"
+__author__ = "Yao-Po Wang (blue119@gmail.com)"
+__USAGE__ = "usage: python %prog"
+
+def main_argv_parser(argv):
+	option_parser = optparse.OptionParser(usage=__USAGE__, version=__version__)
+	option_parser.disable_interspersed_args()
+
+	option_parser.add_option("-S", "--store", action="store_true", default=False,
+							help=("(update/sync only) force update even"
+							" for modules which haven't changed"))
+	
+	if len(argv) < 2:
+		# Users don't need to be told to use the 'help' command.
+		option_parser.print_help()
+		return 1
+
+	# Add manual support for --version as first argument.
+	if argv[1] == '--version':
+		option_parser.print_version()
+		return 0
+	
+	# Add manual support for --help as first argument.
+	if argv[1] == '--help':
+		argv[1] = 'help'
+
 if __name__ == '__main__':
+	main_argv_parser(sys.argv)
 	from applenewsapi import apple_news_api
 	main_story = True # for debug, only download main sotry page then put into /tmp/man_story.html
 	news_api = apple_news_api()

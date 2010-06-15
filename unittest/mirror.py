@@ -8,7 +8,8 @@ import urllib2
 import shutil
 
 reload(sys)
-sys.path.insert(0, '../')
+sys.path.append(os.path.dirname(os.path.realpath(__file__ + '/../')))
+#sys.path.insert(0, '../')
 sys.setdefaultencoding('utf8')
 from BeautifulSoup import BeautifulSoup
 
