@@ -134,7 +134,7 @@ def main_argv_parser(argv):
                             help=("Slecte a folder, store in.\n"
                                 "If it's not exist will be create. default is \"public_html\""))
     (options, args) = option_parser.parse_args(argv[1:])
-    if args < 2:
+    if len(args) < 2:
         # Users don't need to be told to use the 'help' command.
         #option_parser.print_help()
         #sys.exit()
@@ -152,18 +152,25 @@ def main_argv_parser(argv):
     
     return options
 
+def mkdir(path, delete):
+    if os.path.isdir(path):
+        if delete:
+            print "delete -> " + path
+            os.rmdir(path)
+            print "create: " + path
+            os.mkdir(path)
+    else:
+        print "create: " + path
+        os.mkdir(path)
+
 if __name__ == '__main__':
     opt = main_argv_parser(sys.argv)
     from applenewsapi import apple_news_api
 
     #folder create
     store_in = opt.folder + "/" + strftime("%Y-%m-%d", gmtime())
-    if not os.path.isdir(opt.folder):
-        print "create: " + opt.folder
-        os.mkdir(opt.folder)
-    if not os.path.isdir(store_in):
-        print "create: " + store_in
-        os.mkdir(store_in)
+    mkdir(opt.folder, False)
+    mkdir(store_in, False)
 
     """
     Reference:
@@ -191,10 +198,6 @@ if __name__ == '__main__':
         print('[Write2File]')
         rss_api.write2file(PageContent, 'main_story.html')
     else:
-        #RssFileName = {rss_api.Ch2UTF8('副刊'):'Supplement', rss_api.Ch2UTF8('體育'):'Sport', 
-        #        rss_api.Ch2UTF8('蘋果國際'):'International', rss_api.Ch2UTF8('娛樂'):'Entertainment', 
-        #        rss_api.Ch2UTF8('財經'):'Finance', rss_api.Ch2UTF8('頭條要聞'):'HeadLine', 
-        #        rss_api.Ch2UTF8('地產王'):'Estate'}
         RssFileName = {
             rss_api.Ch2UTF8('副刊'):'Supplement', 
             rss_api.Ch2UTF8('體育'):'Sport', 
@@ -202,15 +205,18 @@ if __name__ == '__main__':
             rss_api.Ch2UTF8('娛樂'):'Entertainment', 
             rss_api.Ch2UTF8('財經'):'Finance', 
             rss_api.Ch2UTF8('頭條要聞'):'HeadLine', 
-            rss_api.Ch2UTF8('地產王'):'Estate'
+            rss_api.Ch2UTF8('地產王'):'Estate',
+            rss_api.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
+            rss_api.Ch2UTF8('家居王'):'HouseWorking'
             }
         
         if opt.only_dl:
             for Classify in news_api.news_list:
-
+                ClassifyPath = store_in + "/" + RssFileName[Classify]
+                mkdir(ClassifyPath, True)
                 print '\n------------- ' + Classify + ' -------------'
                 for NewsList in news_api.news_list[Classify]:
-                    f = open(store_in + "/" + RssFileName[Classify] + '_' + NewsList['href'].split('/')[-3] + '.html', 'w')
+                    f = open(ClassifyPath + "/" + NewsList['href'].split('/')[-3] + '.html', 'w')
 
                     PageContent = rss_api.GetPage(news_api.home_url + NewsList['href'])
                     print 'Get ->' + '【' + NewsList['subClassify'] + '】' + NewsList['title']

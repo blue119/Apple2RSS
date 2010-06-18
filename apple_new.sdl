@@ -7,61 +7,61 @@
             <directory>./</directory>
         </destinations>
     </defaultDocument>
-    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2008-06-10T11:47:10" indexFeeds="false" lastConverted="2010-05-24T07:13:46" lastUpdated="2010-05-24T07:13:46" lastAttempted="2010-05-24T07:10:40" size="15867901" urlInfo="true">
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2008-06-10T11:47:10" indexFeeds="false" lastConverted="2010-06-18T07:07:10" lastUpdated="2010-06-18T07:07:10" lastAttempted="2010-06-18T07:06:10" size="19693788" urlInfo="true">
         <name>Supplement</name>
         <category>MY</category>
-        <source maxLinkDepth="1" checksum="1504228201">http://localhost:8000/Supplement_RSS.html</source>
+        <source maxLinkDepth="1" checksum="2885985255">http://localhost:8000/Supplement_RSS.html</source>
         <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
         <destinations>
             <directory>./</directory>
         </destinations>
     </document>
-    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2008-06-10T11:47:10" indexFeeds="false" lastConverted="2010-05-24T07:08:57" lastUpdated="2010-05-24T07:08:57" lastAttempted="2010-05-24T07:07:41" size="5145014" urlInfo="true">
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2008-06-10T11:47:10" indexFeeds="false" lastConverted="2010-06-18T07:05:43" lastUpdated="2010-06-18T07:05:43" lastAttempted="2010-06-18T07:05:23" size="2795806" urlInfo="true">
         <name>Finance</name>
         <category>MY</category>
-        <source maxLinkDepth="1" checksum="2312907798">http://localhost:8000/Finance_RSS.html</source>
+        <source maxLinkDepth="1" checksum="431927509">http://localhost:8000/Finance_RSS.html</source>
         <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
         <destinations>
             <directory>./</directory>
         </destinations>
     </document>
-    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2008-06-10T11:47:10" indexFeeds="false" lastConverted="2010-05-24T07:09:31" lastUpdated="2010-05-24T07:09:31" lastAttempted="2010-05-24T07:08:57" size="2552419" urlInfo="true">
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2008-06-10T11:47:10" indexFeeds="false" lastConverted="2010-06-18T07:05:48" lastUpdated="2010-06-18T07:05:48" lastAttempted="2010-06-18T07:05:43" size="808768" urlInfo="true">
         <name>International</name>
         <category>MY</category>
-        <source maxLinkDepth="1" checksum="2696726005">http://localhost:8000/International_RSS.html</source>
+        <source maxLinkDepth="1" checksum="2421347462">http://localhost:8000/International_RSS.html</source>
         <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
         <destinations>
             <directory>./</directory>
         </destinations>
     </document>
-    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2008-06-10T11:47:10" indexFeeds="false" lastConverted="2010-05-24T07:10:40" lastUpdated="2010-05-24T07:10:40" lastAttempted="2010-05-24T07:09:31" size="5869274" urlInfo="true">
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2008-06-10T11:47:10" indexFeeds="false" lastConverted="2010-06-18T07:06:10" lastUpdated="2010-06-18T07:06:10" lastAttempted="2010-06-18T07:05:48" size="3681708" urlInfo="true">
         <name>Sport</name>
         <category>MY</category>
-        <source maxLinkDepth="1" checksum="2618198939">http://localhost:8000/Sport_RSS.html</source>
+        <source maxLinkDepth="1" checksum="2975223083">http://localhost:8000/Sport_RSS.html</source>
         <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
         <destinations>
             <directory>./</directory>
         </destinations>
     </document>
-    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2009-04-03T02:55:01" indexFeeds="false" lastConverted="2010-05-24T07:11:43" lastUpdated="2010-05-24T07:11:43" lastAttempted="2010-05-24T07:07:47" size="16771827" urlInfo="true">
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2009-04-03T02:55:01" indexFeeds="false" lastConverted="2010-06-18T07:06:11" lastUpdated="2010-06-18T07:06:11" lastAttempted="2010-06-18T07:05:27" size="10061517" urlInfo="true">
         <name>HeadLine</name>
         <category>MY</category>
-        <source maxLinkDepth="1" checksum="3849261083">http://localhost:8000/HeadLine_RSS.html</source>
+        <source maxLinkDepth="1" checksum="3450218251">http://localhost:8000/HeadLine_RSS.html</source>
         <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
         <destinations>
             <directory>./</directory>
         </destinations>
     </document>
-    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2009-04-03T02:55:01" indexFeeds="false" lastConverted="2010-05-24T07:07:47" lastUpdated="2010-05-24T07:07:47" lastAttempted="2010-05-24T07:07:41" size="267442" urlInfo="true">
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2009-04-03T02:55:01" indexFeeds="false" lastConverted="2010-06-18T07:05:26" lastUpdated="2010-06-18T07:05:26" lastAttempted="2010-06-18T07:05:23" size="110689" urlInfo="true">
         <name>Estate</name>
         <category>MY</category>
-        <source maxLinkDepth="1" checksum="393233841">http://localhost:8000/Estate_RSS.html</source>
+        <source maxLinkDepth="1" checksum="1342240484">http://localhost:8000/Estate_RSS.html</source>
         <images maxWidth="320" maxHeight="320" bpp="16" alternate="false" enabled="true"/>
         <destinations>
             <directory>./</directory>
         </destinations>
     </document>
-    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2009-12-18T08:26:36" indexFeeds="false" lastConverted="2010-01-13T10:46:35" lastUpdated="2010-01-13T10:46:35" lastAttempted="2010-05-24T07:08:57" size="10913134" urlInfo="true">
+    <document backup="false" launchable="false" caching="default" encoding="Big5" created="2009-12-18T08:26:36" indexFeeds="false" lastConverted="2010-01-13T10:46:35" lastUpdated="2010-01-13T10:46:35" lastAttempted="2010-06-18T07:05:43" size="10913134" urlInfo="true">
         <name>Home</name>
         <category>MY</category>
         <source maxLinkDepth="1" checksum="4132337164">http://localhost:8000/Home_RSS.html</source>
