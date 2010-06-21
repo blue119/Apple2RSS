@@ -1,3 +1,5 @@
 *.html
 *.pyc
+*.pdb
+*.sdl
 public_html/
