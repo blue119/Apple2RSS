@@ -2,4 +2,5 @@
 *.pyc
 *.pdb
 *.sdl
+*.swp
 public_html/

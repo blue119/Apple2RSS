@@ -1,6 +1,4 @@
 1. unit test
 2. ui by python-urwid
-3. optparse:
-	  i. version
-	 ii. help
-	iii. 
+3. auto-gen sdl file
+

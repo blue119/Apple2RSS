@@ -84,22 +84,25 @@ def build_document(Parent, name, category, URI, Store_in):
 	directory = ET.SubElement(destinations, "directory")
 	directory.text = Store_in
 
+def main(file_name):
+	rss_page_name = ("Supplement", "Finance", "International", 
+		"Sport", "HeadLine", "Estate", "Home")
+	url = "http://localhost:8000/public_html/" + argv[1] + "/"
 
-rss_page_name = ("Supplement", "Finance", "International", 
-	"Sport", "HeadLine", "Estate", "Home")
-url = "http://localhost:8000/public_html/" + argv[1] + "/"
+	root = ET.Element("documentList")
+	root.set("xmlns", "http://www.distantchord.com/sdl/")
 
-root = ET.Element("documentList")
-root.set("xmlns", "http://www.distantchord.com/sdl/")
+	build_defaultDocument(root, "./")
 
-build_defaultDocument(root, "./")
+	for name in rss_page_name:
+		build_document(root, name, "MY", url + name + "_RSS.html", "./")
 
-for name in rss_page_name:
-	build_document(root, name, "MY", url + name + "_RSS.html", "./")
+	#build_document(root, "Home", "MY", 
+	#	"http://localhost:8000/Home_RSS.html", "./")
 
-#build_document(root, "Home", "MY", 
-#	"http://localhost:8000/Home_RSS.html", "./")
+	tree = ET.ElementTree(root)
+	tree.write(file_name)
 
-tree = ET.ElementTree(root)
-tree.write("app2rss.sdl")
+if __name__ == "__main__":
+	main("app2rss.sdl")
 
