@@ -83,59 +83,100 @@ every ad.
 		
 	def page_parser(self, content, DEBUG=False):
 		"""
-return format:
-	[{summery}, {article}, ...]
+		return format:
+			[{summery}, {article}, ...]
 
-	summery
-	temp_dic['title'] -> string
-	temp_dic['pic'] -> ['title', 'small img', 'big img']
-	temp_dic['summary'] -> string
+		summery
+			temp_dic['title'] -> string
+			temp_dic['pic'] -> ['title', 'small img', 'big img']
+			temp_dic['summary'] -> string
 
-	article
-	temp_dic['article_title'] -> string
-	temp_dic['photo'] -> ['title', 'small img', 'big img'] || temp_dic['photo_area'] -> [temp_dic['photo'], ...]
-	temp_dic['article_text'] -> string
+		article
+			temp_dic['article_title'] -> string
+			temp_dic['photo'] -> ['title', 'small img', 'big img'] || temp_dic['photo_area'] -> [temp_dic['photo'], ...]
+			temp_dic['article_text'] -> string
 		"""
 		summary = []
 		temp_dic = {}
 		temp_dic['title'] = '<b>' + self.get_title(content) + '</b>'
 		if DEBUG:
-			print('Title: %s' %summary[0])
+			print('Title: %s' % self.get_title(content))
+
+		# grab active movie's backgroup pic
+		try:
+			am_img = str(content.find('div', {'id':'videoplayer'}).find('script'))
+			temp_dic['am_pic'] = self.home_url + re.compile(".*AV_IMAGE2\s*?\=\s*?\"\/(.*\.jpg)\"\;.*").findall(am_img)[0]
+		except:
+			pass
+
+		if DEBUG and temp_dic.get('am_pic') is not None:
+			print "am pic: " + temp_dic.get('am_pic')
+
 
 		page_content = content.find('div', {'id':'article_left'})
-
-		# some page have no tag for page_content
+		# lots of page have no tag for page_content
 		if page_content is None:
 			page_content = content
 		
 		# grab story picture
 		try:
 			img = str(page_content.find('script', {'language':'javascript'}))
-			p = re.compile('g_ImageTable.*\"(.*)\",\ \"(.*)\",.*javascript:.*\(\'(.*)\',\'http.*\',\'.*\',\'.*\)\"\)')
+
+			p = re.compile(".*g_Image.*javascript.*\([\"|\'](http.*\.jpg)[\"|\']\,\s*?[\"|\'](http.*.jpg)[\"|\']\,\s*?[\"|\'](.*)[\"|\']\,\s*?.*swf.*")
+			# group 1: BigIMG
+			#group 2: SmallIMG
+			# group 3: titleIMG 
+
 			result = p.findall(img)
-			SmallIMG, titleIMG, BigIMG = result[0]
+			BigIMG, SmallIMG, titleIMG = result[0]
 			temp_dic['pic'] = [titleIMG, SmallIMG, BigIMG]
 		except: #No Picture in intro
 			pass
 
+		if DEBUG:
+			if temp_dic.get('pic') is not None:
+				print "story pic: "
+				for i in temp_dic.get('pic'):
+					print "\t" + i
+			else:
+				print 'No store picture.'
+
 		#Grab alticl section
 		p = re.compile('.*iclickAdBody_Start\"\>\<\/span\>(.*)\<span\ name\=\"iclickAdBody_End\"\ id\=.*')
 		page_content = BeautifulSoup(p.findall(str(page_content).replace('\n',''))[0])
+
 		#Abstract
-		temp_dic['summary'] = str(page_content.find('p', {'class':'summary'}))
+		result = re.compile("^\<.*\"\>\s+?(\S.*)\<\/p\>").findall(str(page_content.find('p', {'class':'summary'})))
+		if len(result):
+			temp_dic['summary'] = re.compile("^\<.*\"\>\s+?(\S.*)\<\/p\>").findall(str(page_content.find('p', {'class':'summary'})))[0]
+		
+		# append to summary list
 		summary.append(copy(temp_dic))
 		temp_dic.clear()
+
+		if DEBUG:
+			print 'Summary: '
+			print summary[0].get('summary')
+
 		#split
 		page_content = str(page_content).replace('<h2 class="article_title">', '#split#<h2 class="article_title">')
 		page_content = page_content.split('#split#')
+
 		#                                           "Title"  "Photo"                    "Article"
 		p = re.compile('.*<h2 class=\"article_title\">(.*)</h2>(.*)<p class="article_text">(.*)<div class=\"spacer\"></div>.*')
 		#                                       "Large"  "Small"    "Alt"
 		photo_parse = re.compile('.*javascript.*\'(.*)\',\'(.*)\',\'(.*)\',\'.*target=\".*')
 		photo_parse2 = re.compile('.*vascript.*javascript.*\'(.*)\',\'(.*)\',\'.*\',\'.*\'\);\">.*\"photo_summry\">(.*)<div\ .*')
 		rm_ext_link = re.compile('<.*href.*>(.*)<.*a>(.*)')
-		for i in page_content[1:]:
+
+		for i in page_content[1:]: # void summary
 			Title, Photo, Article = p.findall(i)[0]
+
+			#print '\n==========================='
+			#print "Title: \n\t" + Title
+			#print "Photo: \n\t" + Photo
+			#print "Artic: \n\t" + Article
+
 			#print Title
 			temp_dic['article_title'] = '<p><b>' + Title + '</b><br />'
 
@@ -166,9 +207,20 @@ return format:
 				temp_dic['article_text'] += Article
 
 			summary.append(copy(temp_dic))
+			
+			if DEBUG:
+				print '\n==========================='
+				print "Title: \n\t" + temp_dic.get('article_title')
+				if temp_dic.get('photo'):
+					print "Photo: "
+					for i in temp_dic.get('photo'):
+						print "\t" + i
+				print "Artic: \n\t" + temp_dic.get('article_text')
+
 			temp_dic.clear()
 
 		if DEBUG:
 			print(summary)
+
 		return summary
 
