@@ -3,7 +3,7 @@
 
 from urllib import urlopen
 from BeautifulSoup import BeautifulSoup
-from time import gmtime, strftime, sleep
+from time import gmtime, strftime, sleep, localtime
 from copy import copy
 from applenewsapi import apple_news_api
 from socket import setdefaulttimeout
@@ -179,16 +179,17 @@ if __name__ == '__main__':
 	if opt.page is not None:
 		rss_api = rss_tool()
 		news_api = apple_news_api()
-		f = open(opt.page, "r")
-		PageContent = f.readlines()
-		PageContent = BeautifulSoup(''.join(PageContent))
+		#f = open(opt.page, "r")
+		#PageContent = f.readlines()
+		PageContent = rss_api.GetPage(opt.page)
+		#PageContent = BeautifulSoup(''.join(PageContent))
 		PageContent = news_api.page_parser(PageContent, True)
 		PageContent = rss_api.page_compose(PageContent)
 		rss_api.write2file(PageContent, 'main_story.html')
 		sys.exit()
 
 	#folder create
-	store_in = opt.folder + "/" + strftime("%Y-%m-%d", gmtime())
+	store_in = opt.folder + "/" + strftime("%Y-%m-%d", localtime())
 	mkdir(opt.folder, False)
 	mkdir(store_in, False)
 

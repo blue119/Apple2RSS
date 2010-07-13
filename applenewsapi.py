@@ -180,17 +180,29 @@ every ad.
 			#print Title
 			temp_dic['article_title'] = '<p><b>' + Title + '</b><br />'
 
+#			f = open("/tmp/abc", 'w')
 			if Photo is not '':
 				if 'photo_area' in Photo:
 					temp_dic['photo_area'] = []
 					for i in BeautifulSoup(Photo).findAll('div',{'class':'photo_loader2'}):
-						Large, Small, Alt = photo_parse.findall(str(i))[0]
+						i = str(i.contents[1]).replace('\r&lt;BR&gt;', '')
+						if(i.count('.swf') > 1):
+							i = i[:i.index(".swf")+4].replace('\r&lt;BR&gt;', '')
+							parse = re.compile('.*javascript.*\([\"|\'](http.*\.jpg)[\"|\']\,\s*?[\"|\'](http.*.jpg)[\"|\']\,\s*?[\"|\'](.*)[\"|\']\,\s*?.*swf.*')
+							Large, Small, Alt = parse.findall(str(i))[0]
+						else:
+							Large, Small, Alt = photo_parse.findall(str(i))[0]
+#						f.write(i + '\n===============================\n\n')
+#						f.write(str(Large) + '\n---------------------------\n\n')
+#						f.write(str(Small) + '\n---------------------------\n\n')
+#						f.write(str(Alt) + '\n---------------------------\n\n\n\n\n\n')
 						temp_dic['photo_area'].append([Alt, Small, Large])
 				else:
 					Large, Small, Alt = photo_parse.findall(Photo)[0]
 					if '640pix' not in Large:
 						Large, Small, Alt = photo_parse2.findall(Photo)[0]
 					temp_dic['photo'] = [Alt, Small, Large]
+#			f.close()
 			
 			temp_dic['article_text'] = ''
 			# remove external link
