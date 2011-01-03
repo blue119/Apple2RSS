@@ -62,7 +62,7 @@ class rss_tool():
 		TableString.append(SmallIMG)
 		TableString.append('" /></td></tr></table>')
 		return ''.join(TableString)
-	
+
 	def page_compose(self, content):
 		compose = []
 		# summary
@@ -158,7 +158,7 @@ def main_argv_parser(argv):
 	if argv[1] == '--help' or argv[1] == '-h':
 		option_parser.print_help()
 		sys.exit()
-	
+
 	return options
 
 def mkdir(path, delete):
@@ -208,10 +208,10 @@ if __name__ == '__main__':
 	rss_api = rss_tool()
 	#content = rss_api.GetPage('http://tw.nextmedia.com/applenews/article/art_id/32242785/IssueID/20100119')
 	#rss_api.write2file(rss_api.page_compose(news_api.page_parser(content)))
-	
+
 	if opt.debug:
-		print('Get [%s]' %news_api.news_list[rss_api.Ch2UTF8('頭條要聞')][0]['title'])
-		PageContent = rss_api.GetPage(news_api.home_url + news_api.news_list[rss_api.Ch2UTF8('頭條要聞')][0]['href'])
+		print('Get [%s]' %news_api.news_lists[rss_api.Ch2UTF8('頭條要聞')][0]['title'])
+		PageContent = rss_api.GetPage(news_api.home_url + news_api.news_lists[rss_api.Ch2UTF8('頭條要聞')][0]['href'])
 		sys.stdout.write('[Parsing] -> ')
 		PageContent = news_api.page_parser(PageContent)
 		sys.stdout.write('[Compose] -> ')
@@ -220,23 +220,23 @@ if __name__ == '__main__':
 		rss_api.write2file(PageContent, 'main_story.html')
 	else:
 		RssFileName = {
-			rss_api.Ch2UTF8('副刊'):'Supplement', 
-			rss_api.Ch2UTF8('體育'):'Sport', 
-			rss_api.Ch2UTF8('蘋果國際'):'International', 
-			rss_api.Ch2UTF8('娛樂'):'Entertainment', 
-			rss_api.Ch2UTF8('財經'):'Finance', 
-			rss_api.Ch2UTF8('頭條要聞'):'HeadLine', 
-			rss_api.Ch2UTF8('地產王'):'Estate',
-			rss_api.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
-			rss_api.Ch2UTF8('家居王'):'HouseWorking'
+			# rss_api.Ch2UTF8('副刊'):'Supplement',
+			# rss_api.Ch2UTF8('體育'):'Sport',
+			# rss_api.Ch2UTF8('蘋果國際'):'International',
+			# rss_api.Ch2UTF8('娛樂'):'Entertainment',
+			# rss_api.Ch2UTF8('財經'):'Finance',
+			rss_api.Ch2UTF8('頭條要聞'):'HeadLine',
+			# rss_api.Ch2UTF8('地產'):'Estate',
+			# rss_api.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
+			# rss_api.Ch2UTF8('家居王'):'HouseWorking'
 			}
-		
+
 		if opt.only_dl:
-			for Classify in news_api.news_list:
+			for Classify in news_api.news_lists:
 				ClassifyPath = store_in + "/" + RssFileName[Classify]
 				mkdir(ClassifyPath, True)
 				print '\n------------- ' + Classify + ' -------------'
-				for NewsList in news_api.news_list[Classify]:
+				for NewsList in news_api.news_lists[Classify]:
 					f = open(ClassifyPath + "/" + NewsList['href'].split('/')[-3] + '.html', 'w')
 
 					PageContent = rss_api.GetPage(news_api.home_url + NewsList['href'])
@@ -255,7 +255,7 @@ if __name__ == '__main__':
 		#	for NewsList in NewsChunksDict[ClassifyName]:
 		#		print '【' + NewsList['subClassify'] + '】' + NewsList['Title'] + NewsList['HREF']
 		PageContent = []
-		for Classify in news_api.news_list:
+		for Classify in news_api.news_lists:
 			try:
 				f = open(store_in + "/" + RssFileName[Classify] + '_RSS.html', 'w')
 			except KeyError:
@@ -263,23 +263,27 @@ if __name__ == '__main__':
 				continue
 			rss_api.PastHeader(f, str(Classify))
 			print '\n------------- ' + Classify + ' -------------'
-			for NewsList in news_api.news_list[Classify]:
-				try:
-					PageContent = rss_api.GetPage(news_api.home_url + NewsList['href'])
-				except IOError:
-					#try again
+			for NewsList in news_api.news_lists[Classify]:
+				subClassify = NewsList[0]
+				# print subClassify
+				for news_item in NewsList[1:]:
 					try:
-						PageContent = rss_api.GetPage(news_api.home_url + NewsList['href'])
+						PageContent = rss_api.GetPage(news_api.home_url + news_item['href'])
 					except IOError:
-						#abandent
-						continue
-				print '【' + NewsList['subClassify'] + '】' + NewsList['title']
-				summary = []
-				summary.append(rss_api.page_compose(news_api.page_parser(PageContent)))
-				#summary = [s for s in summary if s != None]
-				rss_api.PastEntry(f, NewsList['title'], news_api.home_url + NewsList['href'], ''.join(summary), NewsList['subClassify'])
-				sleep(1)
-				#print ''.join(summary)
+						#try again
+						try:
+							PageContent = rss_api.GetPage(news_api.home_url + news_item['href'])
+						except IOError:
+							#abandent
+							continue
+					print '【' + subClassify + '】' + news_item['title']
+					summary = []
+					news_api.page_parser(PageContent)
+					# summary.append(rss_api.page_compose(news_api.page_parser(PageContent)))
+					#summary = [s for s in summary if s != None]
+					rss_api.PastEntry(f, news_item['title'], news_api.home_url + news_item['href'], ''.join(summary), subClassify)
+					sleep(1)
+					#print ''.join(summary)
 			rss_api.PastTail(f)
 			f.close()
 

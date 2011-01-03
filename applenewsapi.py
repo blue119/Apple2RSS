@@ -8,6 +8,7 @@ from urllib import urlopen
 from BeautifulSoup import BeautifulSoup
 from time import gmtime, strftime, sleep
 from copy import copy
+from xpinyin.xpinyin import Pinyin
 import sys, re
 import urllib2
 
@@ -16,21 +17,23 @@ sys.setdefaultencoding('utf8')
 
 class apple_news_api():
 	"""
-the api originally is my private using to grabe news from nextmedia web side. then, convert to RSS format and exclude 
-every ad.  
+the api originally is my private using to grabe news from nextmedia web side. then, convert to RSS format and exclude
+every ad.
 	"""
 	def __init__(self):
-		self.news_list = {}
+		self.news_lists = {}
 		self.home_url = 'http://tw.nextmedia.com/'
 		#self.catalog_page = unicode(AppleNewHome, 'big5', 'ignore')
 		self.catalog_page = urlopen( self.home_url + 'applenews/todayapple').read()
 		self.catalog_page = BeautifulSoup(self.catalog_page)
 
 	def show_news_list(self):
-		for i in self.news_list:
-			print '<<< ' + i + ' >>>'
-			for j in self.news_list[i]:
-				print '[' + j['subClassify'] + '] ' + j['title']
+		for classfied in self.news_lists:
+			print '<<< ' + classfied + ' >>>'#classified title
+			for sub_classified in self.news_lists.get(classfied):
+				sub_title =  sub_classified[0]
+				for news_item in sub_classified[1:]:
+					print '\t' + '[' + sub_title + '] ' + news_item['title'] + ' : ' + news_item['href']
 			print ''
 
 	def get_title(self, PageContent):
@@ -52,187 +55,167 @@ every ad.
 
 	def get_list(self, DEBUG = False):
 		"""
-<div id="nl_box"> <- Title Item
-<span class="nl_unit_bar_title">頭條要聞</span> <- Classify
-<span class="nl_unit_second_title">頭條</span> <-  subClassify
-<div id="nl_unitlist"> <= subClassify link
+		the struct of classification_lists :
+			{title : anchor, ...}
+
+		the struct of news_item :
+			{'title' : news_title, 'href' : news_href}
+
+		the struct of news_item_set :
+			[news_item, news_item, ...]
+
+		the struct of sub_classified_list :
+			[subclassified_title, news_item_set]
+
+		the struct of sub_classified_set :
+			[sub_classified_list, ...]
+
+		the struct of news_lists :
+			{classified_title : sub_classified_set, ...}
 		"""
-		news_items = {}
-		news_contents = []
-		ClassifySector = self.catalog_page.findAll('div', {'id':'nl_box'})
-		for i in ClassifySector:
-			counting = 0
-			classify_by_name = i.find('span', {'class':'nl_unit_bar_title'}).string
-			if DEBUG:
-				print '<<<' + classify_by_name + '>>>'
+		#pinyin = Pinyin("xpinyin/Mandarin.dat") #zh_tw utf-8 to pinyin
 
-			for j in i.findAll('span', {'class':'nl_unit_second_title'}):
-				sub_classify_by_name = j.string
-				#print classify_by_name
+		anchor_title = re.compile('#([\w\-]+).*>(.*)<.*')
+		find_classified_section_id = 'section-news-tab-menu'
+		find_subclassified_section_class = 'left_news_block_sqz'
 
-				for k in i.findAll('div', {'id':'nl_unitlist'})[counting].findAll('a'):
-					if DEBUG:
-						print '[%s] %s : %s' %(sub_classify_by_name, k.string, k['href']) 
-					news_items['subClassify'] = str(sub_classify_by_name)
-					news_items['title'] = str(k.string)
-					news_items['href'] = str(k['href'])
-					news_contents.append(copy(news_items))
-				counting += 1
-			self.news_list[classify_by_name] = copy(news_contents)
-			news_contents = []
-		
+		self.news_lists = {}
+		classified_lists = {}
+		sub_classified_list = []
+		news_item = {}
+		news_item_set = []
+		sub_classified_set = []
+
+		#get classify
+		for cl in  self.catalog_page.find('div', {'id' : find_classified_section_id}).findAll('a'):
+			anchor, title = anchor_title.findall(str(cl))[0]
+			classified_lists[title] = anchor
+
+		for anchor in classified_lists.itervalues():
+			sub_classified_set = []
+			top = self.catalog_page.find('div', {'class' : find_subclassified_section_class, 'id' : anchor})
+			classified_title = top.h1.string
+			# ------------------------------------------------
+			for sub_classified in top.findAll('figure'):
+				sub_classified_list = []
+				if sub_classified.h2 is not None:
+					#print sub_classified.h2.string
+					sub_classified_list.append(sub_classified.h2.string)
+					# grab news items in sub classified
+					for news in sub_classified.ul.findAll('a'):
+						#print '\t' + news.string.replace('…', '') + ' - ' + news['href']
+						news_item['title'] = news.string.replace('…', '')
+						news_item['href'] = news['href']
+						sub_classified_list.append(copy(news_item))
+					sub_classified_set.append(copy(sub_classified_list))
+			# ------------------------------------------------
+			sub = top.findNext('div', {'class' : find_subclassified_section_class, 'id' : anchor})
+			while(sub):
+				sub_classified_list = []
+				#print sub.h2.string
+				sub_classified_list.append(sub.h2.string)
+				for news in sub.ul.findAll('a'):
+					#print '\t' + news.string.replace('…', '') + ' : ' + news['href']
+					news_item['title'] = news.string.replace('…', '')
+					news_item['href'] = news['href']
+					sub_classified_list.append(copy(news_item))
+				sub_classified_set.append(copy(sub_classified_list))
+				sub = sub.findNext('div', {'class' : find_subclassified_section_class, 'id' : anchor})
+			# ------------------------------------------------
+			self.news_lists[classified_title] = copy(sub_classified_set)
+
+		# for classfied in self.news_lists:
+			# print classfied #classified title
+			# for sub_classified in self.news_lists.get(classfied):
+				# print '\t' + sub_classified[0]
+				# for news_item in sub_classified[1:]:
+					# print '\t\t' + news_item['title'] + ' : ' + news_item['href']
+
 	def page_parser(self, content, DEBUG=False):
 		"""
-		return format:
-			[{summery}, {article}, ...]
+		return struct of totally list:
+			[{topic_photo}, {article}, {another_photo}, ...]
 
-		summery
-			temp_dic['title'] -> string
-			temp_dic['pic'] -> ['title', 'small img', 'big img']
-			temp_dic['summary'] -> string
+		the struct of photo
+			photo['title'] -> title
+			photo['small'] -> src
+			photo['big'] -> href
 
 		article
 			temp_dic['article_title'] -> string
 			temp_dic['photo'] -> ['title', 'small img', 'big img'] || temp_dic['photo_area'] -> [temp_dic['photo'], ...]
 			temp_dic['article_text'] -> string
 		"""
-		summary = []
-		temp_dic = {}
-		temp_dic['title'] = '<b>' + self.get_title(content) + '</b>'
-		if DEBUG:
-			print('Title: %s' % self.get_title(content))
+		totally = []
 
-		# grab active movie's backgroup pic
-		try:
-			am_img = str(content.find('div', {'id':'videoplayer'}).find('script'))
-			temp_dic['am_pic'] = self.home_url + re.compile(".*AV_IMAGE2\s*?\=\s*?\"\/(.*\.jpg)\"\;.*").findall(am_img)[0]
-		except:
-			pass
+		photo_lists = []
+		photo = {}
 
-		if DEBUG and temp_dic.get('am_pic') is not None:
-			print "am pic: " + temp_dic.get('am_pic')
+		# find artvideo_photo
+		if content.find('div', {'id' : 'videobox'}) is not None:
+			# there is artvideo tag
+			tmp_str = str(content.find('div', {'id' : 'videobox'}).find('script', {'type' : 'text/javascript'}))
+			artvideo_photo_p = re.compile("image[\'\,\'\ ]+([\w\:\/\.]+)")
+			photo['small'] = artvideo_photo_p.findall(tmp_str)[0]
+			photo['title'] = ''
+			photo['big'] = ''
+			totally.append(copy(photo))
 
+		# photo mining
+		next = content.find('div', {'class' : 'each_slide'})
+		while(next):
+			photo['title'] = next.a['title']
+			photo['small'] = next.a.img['src']
+			photo['big'] = next.a['href']
+			photo_lists.append(copy(photo))
+			next = next.findNext('div', {'class' : 'each_slide'})
 
-		page_content = content.find('div', {'id':'article_left'})
-		# lots of page have no tag for page_content
-		if page_content is None:
-			page_content = content
-		
-		# grab story picture
-		try:
-			img = str(page_content.find('script', {'language':'javascript'}))
+		# try to add a photo become topic photo, if it have no artvideo photo and have photo slide.
+		if len(totally) == 0 and len(photo_lists) != 0:
+			totally.append(copy(photo_lists[0])) # append topic photo
+			photo_lists = photo_lists[1:] # shift
 
-			p = re.compile(".*g_Image.*javascript.*\([\"|\'](http.*\.jpg)[\"|\']\,\s*?[\"|\'](http.*.jpg)[\"|\']\,\s*?[\"|\'](.*)[\"|\']\,\s*?.*swf.*")
-			# group 1: BigIMG
-			#group 2: SmallIMG
-			# group 3: titleIMG 
+		# article mining
+		article = []
+		article_p = re.compile("<h2.*\">(.*)\<\/h2\>.*article_text\">(.*)</p>")
+		summary_p = re.compile("<div.*summary\">(.*)")
+		strip_garbage = re.compile("(.*)<!")
 
-			result = p.findall(img)
-			BigIMG, SmallIMG, titleIMG = result[0]
-			temp_dic['pic'] = [titleIMG, SmallIMG, BigIMG]
-		except: #No Picture in intro
-			pass
+		article_paragraph = content.find('article', {'class' : 'article_paragraph'})
+		article.append(str(article_paragraph.h1)) # topic
+		article.append(str(article_paragraph.h2)) # sub topic
 
-		if DEBUG:
-			if temp_dic.get('pic') is not None:
-				print "story pic: "
-				for i in temp_dic.get('pic'):
-					print "\t" + i
-			else:
-				print 'No store picture.'
+		# resorting
+		# content = article_paragraph.find('div', {'id' : 'article_content'})
+		content = article_paragraph.find('div', {'class' : 'article_paragraph_box'})
+		content_split = str(content).replace('\n', '').replace('\r', '').replace('\t', '').replace('  ', '').replace('<h2 id=\"article_title', 'XXXXX<h2 ').split('XXXXX')
 
-		#Grab alticl section
-		p = re.compile('.*iclickAdBody_Start\"\>\<\/span\>(.*)\<span\ name\=\"iclickAdBody_End\"\ id\=.*')
-		page_content = BeautifulSoup(p.findall(str(page_content).replace('\n',''))[0])
+		# article.append(summary_p.findall(content_split[0])[0]) #summary
+		strip = summary_p.findall(content_split[0])[0]
 
-		#Abstract
-		result = re.compile("^\<.*\"\>\s+?(\S.*)\<\/p\>").findall(str(page_content.find('p', {'class':'summary'})))
-		if len(result):
-			temp_dic['summary'] = re.compile("^\<.*\"\>\s+?(\S.*)\<\/p\>").findall(str(page_content.find('p', {'class':'summary'})))[0]
-		
-		# append to summary list
-		summary.append(copy(temp_dic))
-		temp_dic.clear()
+		# strip like as <!--單圖文字 -->
+		if '<!' in strip:
+			strip = strip_garbage.findall(strip)[0]
 
-		if DEBUG:
-			print 'Summary: '
-			print summary[0].get('summary')
+		article.append(strip)
 
-		#split
-		page_content = str(page_content).replace('<h2 class="article_title">', '#split#<h2 class="article_title">')
-		page_content = page_content.split('#split#')
+		# finding paragraph
+		for i in content_split[1:]:
+			h2, string = article_p.findall(i)[0]
+			article.append("<h2>" + h2 + "</h2>")
+			#avoid garbage info
+			if '.gif' in string:
+				string = ''
+			article.append(string)
 
-		#                                           "Title"  "Photo"                    "Article"
-		p = re.compile('.*<h2 class=\"article_title\">(.*)</h2>(.*)<p class="article_text">(.*)<div class=\"spacer\"></div>.*')
-		#                                       "Large"  "Small"    "Alt"
-		photo_parse = re.compile('.*javascript.*\'(.*)\',\'(.*)\',\'(.*)\',\'.*target=\".*')
-		photo_parse2 = re.compile('.*vascript.*javascript.*\'(.*)\',\'(.*)\',\'.*\',\'.*\'\);\">.*\"photo_summry\">(.*)<div\ .*')
-		rm_ext_link = re.compile('<.*href.*>(.*)<.*a>(.*)')
+		totally.append(''.join(article)) # append article
 
-		for i in page_content[1:]: # void summary
-			Title, Photo, Article = p.findall(i)[0]
-
-			#print '\n==========================='
-			#print "Title: \n\t" + Title
-			#print "Photo: \n\t" + Photo
-			#print "Artic: \n\t" + Article
-
-			#print Title
-			temp_dic['article_title'] = '<p><b>' + Title + '</b><br />'
-
-#			f = open("/tmp/abc", 'w')
-			if Photo is not '':
-				if 'photo_area' in Photo:
-					temp_dic['photo_area'] = []
-					for i in BeautifulSoup(Photo).findAll('div',{'class':'photo_loader2'}):
-						i = str(i.contents[1]).replace('\r&lt;BR&gt;', '')
-						if(i.count('.swf') > 1):
-							i = i[:i.index(".swf")+4].replace('\r&lt;BR&gt;', '')
-							parse = re.compile('.*javascript.*\([\"|\'](http.*\.jpg)[\"|\']\,\s*?[\"|\'](http.*.jpg)[\"|\']\,\s*?[\"|\'](.*)[\"|\']\,\s*?.*swf.*')
-							Large, Small, Alt = parse.findall(str(i))[0]
-						else:
-							Large, Small, Alt = photo_parse.findall(str(i))[0]
-#						f.write(i + '\n===============================\n\n')
-#						f.write(str(Large) + '\n---------------------------\n\n')
-#						f.write(str(Small) + '\n---------------------------\n\n')
-#						f.write(str(Alt) + '\n---------------------------\n\n\n\n\n\n')
-						temp_dic['photo_area'].append([Alt, Small, Large])
-				else:
-					Large, Small, Alt = photo_parse.findall(Photo)[0]
-					if '640pix' not in Large:
-						Large, Small, Alt = photo_parse2.findall(Photo)[0]
-					temp_dic['photo'] = [Alt, Small, Large]
-#			f.close()
-			
-			temp_dic['article_text'] = ''
-			# remove external link
-			if "<a href" in Article:
-				rm_link = str(Article).replace('<a href', '#rm_link#<a href')
-				rm_link = rm_link.split('#rm_link#')
-				for i in rm_link:
-					if "<a href" in i:
-						url, another = rm_ext_link.findall(i)[0]
-						temp_dic['article_text'] += url + another
-					else:
-						temp_dic['article_text'] += i
-			else:
-				temp_dic['article_text'] += Article
-
-			summary.append(copy(temp_dic))
-			
-			if DEBUG:
-				print '\n==========================='
-				print "Title: \n\t" + temp_dic.get('article_title')
-				if temp_dic.get('photo'):
-					print "Photo: "
-					for i in temp_dic.get('photo'):
-						print "\t" + i
-				print "Artic: \n\t" + temp_dic.get('article_text')
-
-			temp_dic.clear()
+		# append another photo
+		for i in photo_lists:
+			totally.append(copy(i))
 
 		if DEBUG:
-			print(summary)
+			print(totally)
 
-		return summary
+		return totally
 
