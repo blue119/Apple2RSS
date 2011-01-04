@@ -210,7 +210,7 @@ every ad.
 		# article.append(str(article_paragraph.h1)) # topic
 		#strip h2 tag for sub topic
 		h2_tmp = strip_h2_p.findall(str(article_paragraph.h2))[0]
-		article.append('<p>' + h2_tmp + '</p><br />')
+		article.append('<b>' + h2_tmp + '</b><br />')
 
 		# resorting
 		# content = article_paragraph.find('div', {'id' : 'article_content'})
