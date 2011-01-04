@@ -11,9 +11,12 @@ from copy import copy
 # from xpinyin.xpinyin import Pinyin
 import sys, re
 import urllib2
+import logging
 
 reload(sys)
 sys.setdefaultencoding('utf8')
+logger = logging.getLogger('apple2rss.api')
+
 
 class apple_news_api():
 	"""
@@ -29,12 +32,12 @@ every ad.
 
 	def show_news_list(self):
 		for classfied in self.news_lists:
-			print '<<< ' + classfied + ' >>>'#classified title
+			logger.info('<<< ' + classfied + ' >>>')#classified title
 			for sub_classified in self.news_lists.get(classfied):
 				sub_title =  sub_classified[0]
 				for news_item in sub_classified[1:]:
-					print '\t' + '[' + sub_title + '] ' + news_item['title'] + ' : ' + news_item['href']
-			print ''
+					logger.info('[' + sub_title + '] ' + news_item['title'] + ' : ' + news_item['href'])
+			# print ''
 
 	def get_title(self, PageContent):
 		p = re.compile('^<title>(.*)\ \|\ .*\ \|\ .*\ \|.*\|.*</title>')
@@ -201,10 +204,13 @@ every ad.
 		article_p = re.compile("<h2.*\">(.*)\<\/h2\>.*article_text\">(.*)</p>")
 		summary_p = re.compile("<div.*summary\">(.*)")
 		strip_garbage = re.compile("(.*)<!")
+		strip_h2_p = re.compile("<h2.*?>(.*)</.*?>")
 
 		article_paragraph = content.find('article', {'class' : 'article_paragraph'})
-		article.append(str(article_paragraph.h1)) # topic
-		article.append(str(article_paragraph.h2)) # sub topic
+		# article.append(str(article_paragraph.h1)) # topic
+		#strip h2 tag for sub topic
+		h2_tmp = strip_h2_p.findall(str(article_paragraph.h2))[0]
+		article.append('<p>' + h2_tmp + '</p><br />')
 
 		# resorting
 		# content = article_paragraph.find('div', {'id' : 'article_content'})
@@ -229,7 +235,7 @@ every ad.
 		for i in content_split[1:]:
 			h2, string = article_p.findall(i)[0]
 			# article.append("<h2>" + h2 + "</h2>")
-			article.append("<br /><b>" + h2 + "</b>")
+			article.append("<br /><b>" + h2 + "</b><br />")
 			#avoid garbage info
 			if '.gif' in string:
 				string = ''

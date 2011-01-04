@@ -11,11 +11,24 @@ import sys, re
 import urllib2
 import optparse
 import os
+import logging
 
 reload(sys)
 sys.setdefaultencoding('utf8')
 
+LOG_FILENAME = 'apple2rss.log'
+logging.basicConfig(filename = LOG_FILENAME,
+	level=logging.DEBUG, filemode = 'a',
+	datefmt = '%Y-%m-%d %H:%M:%S',
+	format='%(asctime)s : %(name)s : %(levelname)s\t%(message)s')
+
+logger = logging.getLogger('apple2rss.main')
+
+
 class rss_tool():
+	def __init__(self):
+		self.logger = logging.getLogger('apple2rss.rss_tool')
+
 	def PastHeader(self, f, classify):
 		f.write('<?xml version="1.0" encoding="utf-8"?>\n')
 		f.write('<rss xmlns:feedburner="http://rssnamespace.org/feedburner/ext/1.0" version="2.0">\n')
@@ -82,10 +95,10 @@ class rss_tool():
 			html_page = urllib2.urlopen(url_req).read()
 		except IOError, ErrMsg:
 			try:
-				print 'IOError(URL = %s) : %s, Try again\n', URL, ErrMsg
+				logger.warning('IOError(URL = %s) : %s, Try again', URL, ErrMsg)
 				html_page = urllib2.urlopen(url_req).read() #try again
 			except IOError, ErrMsg:
-				print 'Maybe %s is dead\n', URL
+				logger.warning('Maybe %s is dead', URL)
 				return None
 		return html_page
 
@@ -114,17 +127,16 @@ def main_argv_parser(argv):
 	option_parser.disable_interspersed_args()
 
 	option_parser.add_option("-S", "--save", action="store_true", dest="save",
-							help=("like as -D, not only download the news page, but also do transform."))
+		help=("like as -D, not only download the news page, but also do transform."))
 	option_parser.add_option("-D", "--download", action="store_true", dest="only_dl",
-							help=("only to download news page don't transform to rss format."))
+		help=("only to download news page don't transform to rss format."))
 	option_parser.add_option("-d", "--debug", action="store_true", dest="debug",
-							help=("Open debug mode"))
+		help=("Open debug mode"))
 	option_parser.add_option("-f", "--folder", action="store", type="string",
-							dest="folder", default="public_html",
-							help=("Slecte a folder, store in.\n"
-								"If it's not exist will be create. default is \"public_html\""))
+		dest="folder", default="public_html", help=("Slecte a folder, store in.\n"
+		"If it's not exist will be create. default is \"public_html\""))
 	option_parser.add_option("-p", "--page", action="store", dest="page", type="string",
-							help=("Convert the PAGE to rss file save in /tmp/apple.html.\n"))
+		help=("Convert the PAGE to rss file save in /tmp/apple.html.\n"))
 
 	(options, args) = option_parser.parse_args(argv[1:])
 	if len(args) < 2:
@@ -148,17 +160,18 @@ def main_argv_parser(argv):
 def mkdir(path, delete):
 	if os.path.isdir(path):
 		if delete:
-			print "delete -> " + path
+			logger.info("delete -> %s",  path)
 			os.rmdir(path)
-			print "create: " + path
+			logger.info("create: %s",  path)
 			os.mkdir(path)
 	else:
-		print "create: " + path
+		logger.info("create: %s",  path)
 		os.mkdir(path)
 
 if __name__ == '__main__':
 	opt = main_argv_parser(sys.argv)
 	from applenewsapi import apple_news_api
+
 
 	if opt.page is not None:
 		rss_api = rss_tool()
@@ -190,17 +203,18 @@ if __name__ == '__main__':
 	news_api.show_news_list()
 
 	rss_api = rss_tool()
-	#content = rss_api.GetPage('http://tw.nextmedia.com/applenews/article/art_id/32242785/IssueID/20100119')
-	#rss_api.write2file(rss_api.page_compose(news_api.page_parser(content)))
 
 	if opt.debug:
-		print('Get [%s]' %news_api.news_lists[rss_api.Ch2UTF8('頭條要聞')][0]['title'])
+		logger.debug('Get [%s]' %news_api.news_lists[rss_api.Ch2UTF8('頭條要聞')][0]['title'])
 		PageContent = rss_api.GetPage(news_api.home_url + news_api.news_lists[rss_api.Ch2UTF8('頭條要聞')][0]['href'])
-		sys.stdout.write('[Parsing] -> ')
+		# sys.stdout.write('[Parsing] -> ')
+		logger.debug('[Parsing] -> ')
 		PageContent = news_api.page_parser(PageContent)
-		sys.stdout.write('[Compose] -> ')
+		# sys.stdout.write('[Compose] -> ')
+		logger.debug('[Compose] -> ')
 		PageContent = rss_api.page_compose(PageContent)
-		print('[Write2File]')
+		# print('[Write2File]')
+		logger.debug('[Write2File]')
 		rss_api.write2file(PageContent, 'main_story.html')
 	else:
 		RssFileName = {
@@ -213,7 +227,7 @@ if __name__ == '__main__':
 			# rss_api.Ch2UTF8('地產'):'Estate',
 			# rss_api.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
 			# rss_api.Ch2UTF8('家居王'):'HouseWorking'
-			}
+		}
 
 		if opt.only_dl:
 			for Classify in news_api.news_lists:
@@ -243,10 +257,10 @@ if __name__ == '__main__':
 			try:
 				f = open(store_in + "/" + RssFileName[Classify] + '_RSS.html', 'w')
 			except KeyError:
-				print '%s, not support\n' % (Classify)
+				logger.info('%s, not support' % (Classify))
 				continue
 			rss_api.PastHeader(f, str(Classify))
-			print '\n------------- ' + Classify + ' -------------'
+			logger.info('------------- %s -------------', Classify)
 			for NewsList in news_api.news_lists[Classify]:
 				subClassify = NewsList[0]
 				# print subClassify
@@ -260,19 +274,19 @@ if __name__ == '__main__':
 						except IOError:
 							#abandent
 							continue
-					print '【' + subClassify + '】' + news_item['title']
+					logger.info('【' + subClassify + '】' + news_item['title'])
 					summary = []
 
 					try:
 						result =  news_api.page_parser(PageContent)
 					except:
-						print 'parse failur'
+						logger.critical('parse failur')
 						continue
 
 					try:
 						summary.append(rss_api.page_compose(result))
 					except:
-						print 'compose failur'
+						logger.critical('parse failur')
 						continue
 
 					#summary = [s for s in summary if s != None]
