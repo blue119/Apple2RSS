@@ -40,55 +40,39 @@ class rss_tool():
 		f.write('<item>\n')
 		f.write('<title><![CDATA[【' + classify + '】' + title + ']]></title>\n')
 		f.write('<pubDate>' + strftime("%a, %d %b %Y %H:%M:%S") + '</pubDate>\n')
-		#f.write('<pubDate>' + strftime("%a, %d %b %Y %H:%M:%S +0800", gmtime()) + '</pubDate>\n')
-		#f.write('<author><![CDATA[' + subclassify +']]></author>\n')
-		#f.write('<link><![CDATA[' + link + ']]></link>\n')
 		f.write('<description><![CDATA[' + summary + ']]></description>\n')
 		f.write('</item>\n')
 
-	def CreatImgTable(self, photo_list = ['', '', '']):
-		titleIMG, SmallIMG, BigIMG = photo_list
-		if '.svg' in SmallIMG:
-			SmallIMG = HomeUrl + SmallIMG[1:]
-		if '.svg' in BigIMG:
-			BigIMG = HomeUrl + BigIMG[1:]
+	def CreatImgTable(self, photo):
+		Title = photo.get('title')
+		Small = photo.get('small')
+		Big = photo.get('big')
+
 		TableString = []
 		TableString.append('<table style="float: left; width: 30%; margin: 0 5px 5px 0; font-size: small; text-align: center;">')
 		TableString.append('<tr><td><a href="')
-		TableString.append(BigIMG)
+		TableString.append(Big)
 		TableString.append('"><img title="')
-		TableString.append(titleIMG)
+		TableString.append(Title)
 		TableString.append('" src="')
-		TableString.append(SmallIMG)
+		TableString.append(Small)
 		TableString.append('" /></td></tr></table>')
 		return ''.join(TableString)
 
 	def page_compose(self, content):
 		compose = []
 		# summary
-		#compose.append(content[0]['title'])
 		# the content may have no picture in summary.
-		if content[0].get('am_pic') is not None:
-			compose.append("<img width=\"315\" src=\"" + content[0].get('am_pic')  + "\"/><br /></p>")
+		if content.get('topic_photo') is not None:
+			compose.append("<img width=\"315\" src=\"" + content.get('topic_photo').get('small')  + "\"/><br /></p>")
 
-		if 'pic' in content[0].keys():
-			compose.append(self.CreatImgTable(content[0]['pic']))
+		if content.get('article') is not None:
+			compose.append(content.get('article'))
 
-		if content[0].get('summary') is not None:
-			compose.append(content[0].get('summary'))
+		if content.get('slide_photo') is not None:
+			for photo in content.get('slide_photo'):
+				compose.append(self.CreatImgTable(photo))
 
-		for i in content[1:]:
-			#extract photo
-			if 'photo_area' not in i.keys():
-				if 'photo' in i.keys():
-					compose.append(self.CreatImgTable(i['photo']))
-			else:
-				for j in i['photo_area']:
-					compose.append(self.CreatImgTable(j))
-			#extract title
-			compose.append(i['article_title'])
-			#extract text
-			compose.append(i['article_text'])
 		return ''.join(compose)
 
 	def GetPage(self, URL):
@@ -103,7 +87,7 @@ class rss_tool():
 			except IOError, ErrMsg:
 				print 'Maybe %s is dead\n', URL
 				return None
-		return BeautifulSoup(html_page)
+		return html_page
 
 	def Url2TinyUrl(self, URL):
 		return urlopen('http://tinyurl.com/api-create.php?url=' + URL).read()
@@ -220,12 +204,12 @@ if __name__ == '__main__':
 		rss_api.write2file(PageContent, 'main_story.html')
 	else:
 		RssFileName = {
+			rss_api.Ch2UTF8('頭條要聞'):'HeadLine',
 			# rss_api.Ch2UTF8('副刊'):'Supplement',
 			# rss_api.Ch2UTF8('體育'):'Sport',
 			# rss_api.Ch2UTF8('蘋果國際'):'International',
 			# rss_api.Ch2UTF8('娛樂'):'Entertainment',
 			# rss_api.Ch2UTF8('財經'):'Finance',
-			rss_api.Ch2UTF8('頭條要聞'):'HeadLine',
 			# rss_api.Ch2UTF8('地產'):'Estate',
 			# rss_api.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
 			# rss_api.Ch2UTF8('家居王'):'HouseWorking'
@@ -278,8 +262,19 @@ if __name__ == '__main__':
 							continue
 					print '【' + subClassify + '】' + news_item['title']
 					summary = []
-					news_api.page_parser(PageContent)
-					# summary.append(rss_api.page_compose(news_api.page_parser(PageContent)))
+
+					try:
+						result =  news_api.page_parser(PageContent)
+					except:
+						print 'parse failur'
+						continue
+
+					try:
+						summary.append(rss_api.page_compose(result))
+					except:
+						print 'compose failur'
+						continue
+
 					#summary = [s for s in summary if s != None]
 					rss_api.PastEntry(f, news_item['title'], news_api.home_url + news_item['href'], ''.join(summary), subClassify)
 					sleep(1)

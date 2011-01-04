@@ -8,7 +8,7 @@ from urllib import urlopen
 from BeautifulSoup import BeautifulSoup
 from time import gmtime, strftime, sleep
 from copy import copy
-from xpinyin.xpinyin import Pinyin
+# from xpinyin.xpinyin import Pinyin
 import sys, re
 import urllib2
 
@@ -95,11 +95,26 @@ every ad.
 			sub_classified_set = []
 			top = self.catalog_page.find('div', {'class' : find_subclassified_section_class, 'id' : anchor})
 			classified_title = top.h1.string
+			# print '+++++ ' + classified_title + ' +++++'
+
 			# ------------------------------------------------
+			# a special case for "頭條" sub_classified
+			if 'h2' not in str(top):
+				sub_classified_list = []
+				sub_classified_list.append(top.findNext('h2').string)
+				for news in top.findNext('ul').findAll('a'):
+					news_item['title'] = news.string.replace('…', '')
+					news_item['href'] = news['href']
+					sub_classified_list.append(copy(news_item))
+				sub_classified_set.append(copy(sub_classified_list))
+
+			# ------------------------------------------------
+			# normally, h1 include a h2 and it's news items
+			# in "副刊", there are a parsing issus. whole h2 items be included h1 scope.
 			for sub_classified in top.findAll('figure'):
 				sub_classified_list = []
 				if sub_classified.h2 is not None:
-					#print sub_classified.h2.string
+					# print sub_classified.h2.string
 					sub_classified_list.append(sub_classified.h2.string)
 					# grab news items in sub classified
 					for news in sub_classified.ul.findAll('a'):
@@ -108,11 +123,13 @@ every ad.
 						news_item['href'] = news['href']
 						sub_classified_list.append(copy(news_item))
 					sub_classified_set.append(copy(sub_classified_list))
+
 			# ------------------------------------------------
+			# grab other sub_classified not be included <h1>
 			sub = top.findNext('div', {'class' : find_subclassified_section_class, 'id' : anchor})
 			while(sub):
 				sub_classified_list = []
-				#print sub.h2.string
+				# print sub.h2.string
 				sub_classified_list.append(sub.h2.string)
 				for news in sub.ul.findAll('a'):
 					#print '\t' + news.string.replace('…', '') + ' : ' + news['href']
@@ -131,25 +148,25 @@ every ad.
 				# for news_item in sub_classified[1:]:
 					# print '\t\t' + news_item['title'] + ' : ' + news_item['href']
 
-	def page_parser(self, content, DEBUG=False):
+	def page_parser(self, raw_content, DEBUG=False):
 		"""
 		return struct of totally list:
-			[{topic_photo}, {article}, {another_photo}, ...]
+			{'topic_photo' : {photo}, 'article' : str(article_string), 'slide_photo' : [{photo}, {photo}, ...]}
 
 		the struct of photo
 			photo['title'] -> title
 			photo['small'] -> src
 			photo['big'] -> href
 
-		article
-			temp_dic['article_title'] -> string
-			temp_dic['photo'] -> ['title', 'small img', 'big img'] || temp_dic['photo_area'] -> [temp_dic['photo'], ...]
-			temp_dic['article_text'] -> string
 		"""
-		totally = []
+
+		totally = {}
 
 		photo_lists = []
 		photo = {}
+
+		# data pre-process
+		content = BeautifulSoup(raw_content)
 
 		# find artvideo_photo
 		if content.find('div', {'id' : 'videobox'}) is not None:
@@ -159,7 +176,7 @@ every ad.
 			photo['small'] = artvideo_photo_p.findall(tmp_str)[0]
 			photo['title'] = ''
 			photo['big'] = ''
-			totally.append(copy(photo))
+			totally['topic_photo'] = copy(photo)
 
 		# photo mining
 		next = content.find('div', {'class' : 'each_slide'})
@@ -171,9 +188,13 @@ every ad.
 			next = next.findNext('div', {'class' : 'each_slide'})
 
 		# try to add a photo become topic photo, if it have no artvideo photo and have photo slide.
-		if len(totally) == 0 and len(photo_lists) != 0:
-			totally.append(copy(photo_lists[0])) # append topic photo
+		if totally.get('topic_photo') is None and len(photo_lists) > 0:
+			totally['topic_photo'] = copy(photo_lists[0]) # append topic photo
 			photo_lists = photo_lists[1:] # shift
+
+		# append other photo
+		if len(photo_lists) > 0:
+			totally['slide_photo'] = copy(photo_lists)
 
 		# article mining
 		article = []
@@ -188,7 +209,12 @@ every ad.
 		# resorting
 		# content = article_paragraph.find('div', {'id' : 'article_content'})
 		content = article_paragraph.find('div', {'class' : 'article_paragraph_box'})
-		content_split = str(content).replace('\n', '').replace('\r', '').replace('\t', '').replace('  ', '').replace('<h2 id=\"article_title', 'XXXXX<h2 ').split('XXXXX')
+		# new line free
+		content_split = str(content).replace('\n', '').replace('\r', '')
+		# tab and space free
+		content_split = content_split.replace('\t', '').replace('  ', '')
+		# split
+		content_split = content_split.replace('<h2 id=\"article_title', 'XXXXX<h2 ').split('XXXXX')
 
 		# article.append(summary_p.findall(content_split[0])[0]) #summary
 		strip = summary_p.findall(content_split[0])[0]
@@ -202,17 +228,14 @@ every ad.
 		# finding paragraph
 		for i in content_split[1:]:
 			h2, string = article_p.findall(i)[0]
-			article.append("<h2>" + h2 + "</h2>")
+			# article.append("<h2>" + h2 + "</h2>")
+			article.append("<br /><b>" + h2 + "</b>")
 			#avoid garbage info
 			if '.gif' in string:
 				string = ''
 			article.append(string)
 
-		totally.append(''.join(article)) # append article
-
-		# append another photo
-		for i in photo_lists:
-			totally.append(copy(i))
+		totally['article'] = (''.join(article)) # append article
 
 		if DEBUG:
 			print(totally)
