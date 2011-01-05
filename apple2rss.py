@@ -17,7 +17,8 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 LOG_FILENAME = 'apple2rss.log'
-logging.basicConfig(filename = LOG_FILENAME,
+logging.basicConfig(
+	filename = LOG_FILENAME,
 	level=logging.DEBUG, filemode = 'a',
 	datefmt = '%Y-%m-%d %H:%M:%S',
 	format='%(asctime)s : %(name)s : %(levelname)s\t%(message)s')
@@ -26,8 +27,9 @@ logger = logging.getLogger('apple2rss.main')
 
 
 class rss_tool():
-	def __init__(self):
+	def __init__(self, prefix_url):
 		self.logger = logging.getLogger('apple2rss.rss_tool')
+		self.home_url = prefix_url
 
 	def PastHeader(self, f, classify):
 		f.write('<?xml version="1.0" encoding="utf-8"?>\n')
@@ -93,6 +95,7 @@ class rss_tool():
 			url_req = urllib2.Request(URL)
 			url_req.add_header("User-agent", "Mozilla/5.0")
 			html_page = urllib2.urlopen(url_req).read()
+
 		except IOError, ErrMsg:
 			try:
 				logger.warning('IOError(URL = %s) : %s, Try again', URL, ErrMsg)
@@ -100,6 +103,17 @@ class rss_tool():
 			except IOError, ErrMsg:
 				logger.warning('Maybe %s is dead', URL)
 				return None
+
+		# some page only include redirect path
+		page_redirect = BeautifulSoup(html_page).find('script').string
+		if page_redirect is not None:
+			redirect_p = re.compile('[/W]+(.*)\"')
+			redirect_url = redirect_p.findall(page_redirect)[0]
+			logger.info('page redirect to %s', redirect_url)
+			if 'http' not in redirect_url:
+				redirect_url = self.home_url + redirect_url
+			return self.GetPage(redirect_url)
+
 		return html_page
 
 	def Url2TinyUrl(self, URL):
@@ -202,7 +216,7 @@ if __name__ == '__main__':
 	news_api.get_list()
 	news_api.show_news_list()
 
-	rss_api = rss_tool()
+	rss_api = rss_tool(news_api.home_url)
 
 	if opt.debug:
 		logger.debug('Get [%s]' %news_api.news_lists[rss_api.Ch2UTF8('頭條要聞')][0]['title'])
@@ -218,8 +232,8 @@ if __name__ == '__main__':
 		rss_api.write2file(PageContent, 'main_story.html')
 	else:
 		RssFileName = {
-			rss_api.Ch2UTF8('頭條要聞'):'HeadLine',
-			# rss_api.Ch2UTF8('副刊'):'Supplement',
+			# rss_api.Ch2UTF8('頭條要聞'):'HeadLine',
+			rss_api.Ch2UTF8('副刊'):'Supplement',
 			# rss_api.Ch2UTF8('體育'):'Sport',
 			# rss_api.Ch2UTF8('蘋果國際'):'International',
 			# rss_api.Ch2UTF8('娛樂'):'Entertainment',

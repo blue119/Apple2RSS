@@ -56,7 +56,23 @@ every ad.
 			tmp.append(re.compile('(.*)\<.*').findall(i)[0])
 		return ''.join(tmp)
 
-	def get_list(self, DEBUG = False):
+	def totally_list_dump(self, totally):
+		if totally.get('topic_photo') is not None:
+			logger.debug('topic photo')
+			logger.debug(totally.get('topic_photo').get('small'))
+
+		if totally.get('article') is not None:
+			logger.debug('article')
+			logger.debug(totally.get('article'))
+
+		if totally.get('slide_photo') is not None:
+			logger.debug('slide photo')
+			for photo in totally.get('slide_photo'):
+				logger.debug('title : %s', photo.get('title'))
+				logger.debug('big  : %s', photo.get('big'))
+				logger.debug('small : %s', photo.get('small'))
+
+	def get_list(self):
 		"""
 		the struct of classification_lists :
 			{title : anchor, ...}
@@ -151,7 +167,7 @@ every ad.
 				# for news_item in sub_classified[1:]:
 					# print '\t\t' + news_item['title'] + ' : ' + news_item['href']
 
-	def page_parser(self, raw_content, DEBUG=False):
+	def page_parser(self, raw_content):
 		"""
 		return struct of totally list:
 			{'topic_photo' : {photo}, 'article' : str(article_string), 'slide_photo' : [{photo}, {photo}, ...]}
@@ -243,8 +259,7 @@ every ad.
 
 		totally['article'] = (''.join(article)) # append article
 
-		if DEBUG:
-			print(totally)
+		self.totally_list_dump(totally)
 
 		return totally
 
