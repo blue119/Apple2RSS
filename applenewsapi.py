@@ -58,15 +58,37 @@ every ad.
 
 	def totally_list_dump(self, totally):
 		if totally.get('topic_photo') is not None:
-			logger.debug('topic photo')
+			logger.debug('===== topic photo =====')
 			logger.debug(totally.get('topic_photo').get('small'))
 
 		if totally.get('article') is not None:
-			logger.debug('article')
+			logger.debug('===== article =====')
 			logger.debug(totally.get('article'))
 
+		if totally.get('stepbox') is not None:
+			logger.debug('===== stepbox =====')
+			for stepbox in totally.get('stepbox'):
+				if 'normal' is stepbox.get('type'):
+					photo = stepbox.get('photo')
+					logger.debug('type : %s', stepbox.get('type'))
+					logger.debug('title : %s', photo.get('title'))
+					logger.debug('big  : %s', photo.get('big'))
+					logger.debug('small : %s', photo.get('small'))
+					logger.debug('text : %s', stepbox.get('text'))
+
+				if 'puretext' is stepbox.get('type'):
+					logger.debug('type : %s', stepbox.get('type'))
+					logger.debug('text : %s', stepbox.get('text'))
+
+				if 'threepic' is stepbox.get('type'):
+					logger.debug('type : %s', stepbox.get('type'))
+					for photo in stepbox.get('photos'):
+						logger.debug('title : %s', photo.get('title'))
+						logger.debug('big  : %s', photo.get('big'))
+						logger.debug('small : %s', photo.get('small'))
+
 		if totally.get('slide_photo') is not None:
-			logger.debug('slide photo')
+			logger.debug('===== slide photo =====')
 			for photo in totally.get('slide_photo'):
 				logger.debug('title : %s', photo.get('title'))
 				logger.debug('big  : %s', photo.get('big'))
@@ -170,7 +192,14 @@ every ad.
 	def page_parser(self, raw_content):
 		"""
 		return struct of totally list:
-			{'topic_photo' : {photo}, 'article' : str(article_string), 'slide_photo' : [{photo}, {photo}, ...]}
+			{
+			  'topic_photo' : {photo},
+			  'article' : str(article_string),
+			  'slide_photo' : [{photo}, {photo}, ...]
+			  'stepbox' : [{'type' : 'normal', 'photo' : {photo}, 'text' : string},
+			               {'type' : 'threepic', 'photos' : [{photo}, {photo{ ..}]
+			  			   {'type' : 'puretext', 'text' : string} ]
+			}
 
 		the struct of photo
 			photo['title'] -> title
@@ -183,8 +212,18 @@ every ad.
 
 		photo_lists = []
 		photo = {}
+		article_raw = []
 
 		# data pre-process
+		start = 0
+		for string in raw_content.split('\n'):
+			if 'iclickAdBody_End' in string:
+				break
+			if start:
+				article_raw.append(string)
+			if 'class' in string and 'summary' in string:
+				start = 1
+
 		content = BeautifulSoup(raw_content)
 
 		# find artvideo_photo
@@ -247,6 +286,7 @@ every ad.
 
 		article.append(strip)
 
+
 		# finding paragraph
 		for i in content_split[1:]:
 			h2, string = article_p.findall(i)[0]
@@ -256,6 +296,42 @@ every ad.
 			if '.gif' in string:
 				string = ''
 			article.append(string)
+
+
+		# process stepbox
+		stepbox = BeautifulSoup(''.join(article_raw)).find('div')
+		if stepbox is not None:
+			totally['stepbox'] = []
+
+		# puretext
+		# normal : text + photo
+		# threepic
+		while(stepbox):
+			box_bulk = {}
+			if 'normal' in stepbox['class']:
+				photo['title'] = stepbox.a['title']
+				photo['small'] = stepbox.a.img['src']
+				photo['big'] = stepbox.a['href']
+				box_bulk['type'] = 'normal'
+				box_bulk['photo'] = copy(photo)
+				box_bulk['text'] = stepbox.p
+
+			if 'puretext' in stepbox['class']:
+				box_bulk['type'] = 'puretext'
+				box_bulk['text'] = stepbox.p
+
+			if 'threepic' in stepbox['class']:
+				box_bulk['type'] = 'threepic'
+				box_bulk['photos'] = []
+				for i in stepbox.findAll('a'):
+					photo['title'] = i['title']
+					photo['small'] = i['href']
+					photo['big'] = i.img['src']
+					box_bulk['photos'].append(copy(photo))
+
+			totally['stepbox'].append(copy(box_bulk))
+			stepbox = stepbox.findNext('div')
+
 
 		totally['article'] = (''.join(article)) # append article
 
