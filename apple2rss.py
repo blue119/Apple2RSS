@@ -71,21 +71,51 @@ class rss_tool():
 		TableString.append(Title)
 		TableString.append('" src="')
 		TableString.append(Small)
-		TableString.append('" /></td></tr></table>')
+		TableString.append('" /></td>')
+		TableString.append('</tr></table>')
 		return ''.join(TableString)
 
 	def page_compose(self, content):
 		compose = []
+
+		if content.get('slide_photo') is not None:
+			slide_photo = content.get('slide_photo')
+
 		# summary
 		# the content may have no picture in summary.
 		if content.get('topic_photo') is not None:
-			compose.append("<img width=\"315\" src=\"" + content.get('topic_photo').get('small')  + "\"/><br /></p>")
+			compose.append("<img width=\"315\" src=\"" + \
+				content.get('topic_photo').get('small')  + "\"/><br /></p>")
+
+		# if content.get('slide_photo') is not None:
+			# compose.append(self.CreatImgTable(slide_photo[0]))
+			# slide_photo = slide_photo[1:]
 
 		if content.get('article') is not None:
-			compose.append(content.get('article'))
+			for article in content.get('article'):
+				compose.append('<br /><b>' + article['header'] + '</b><br />')
+				if len(slide_photo):
+					compose.append(self.CreatImgTable(slide_photo[0]))
+					slide_photo = slide_photo[1:]
+				compose.append(article['text'] + '<br />')
+
+		if content.get('stepbox') is not None:
+			for stepbox in content.get('stepbox'):
+				if 'normal' is stepbox.get('type'):
+					compose.append(self.CreatImgTable(stepbox.get('photo')))
+					compose.append('<b>' + stepbox.get('text').get('head') + \
+						'</b><br />')
+					compose.append(stepbox.get('text').get('body') + '<br />')
+
+				if 'puretext' is stepbox.get('type'):
+					compose.append(stepbox.get('text') + '<br />')
+
+				if 'threepic' is stepbox.get('type'):
+					for photo in stepbox.get('photos'):
+						compose.append(self.CreatImgTable(photo))
 
 		if content.get('slide_photo') is not None:
-			for photo in content.get('slide_photo'):
+			for photo in slide_photo:
 				compose.append(self.CreatImgTable(photo))
 
 		return ''.join(compose)
@@ -188,14 +218,15 @@ if __name__ == '__main__':
 
 
 	if opt.page is not None:
-		rss_api = rss_tool()
 		news_api = apple_news_api()
+		rss_api = rss_tool(news_api.home_url)
 		#f = open(opt.page, "r")
 		#PageContent = f.readlines()
 		PageContent = rss_api.GetPage(opt.page)
 		#PageContent = BeautifulSoup(''.join(PageContent))
-		PageContent = news_api.page_parser(PageContent, True)
+		PageContent = news_api.page_parser(PageContent)
 		PageContent = rss_api.page_compose(PageContent)
+		# PageContent = '<h1>' + title + '</h1>' + PageContent
 		rss_api.write2file(PageContent, 'main_story.html')
 		sys.exit()
 
@@ -219,28 +250,31 @@ if __name__ == '__main__':
 	rss_api = rss_tool(news_api.home_url)
 
 	if opt.debug:
-		logger.debug('Get [%s]' %news_api.news_lists[rss_api.Ch2UTF8('頭條要聞')][0]['title'])
-		PageContent = rss_api.GetPage(news_api.home_url + news_api.news_lists[rss_api.Ch2UTF8('頭條要聞')][0]['href'])
+		title = news_api.news_lists[rss_api.Ch2UTF8('頭條要聞')][0][1]['title']
+		logger.debug('Get [%s]', title)
+		PageContent = rss_api.GetPage(news_api.home_url + \
+			news_api.news_lists[rss_api.Ch2UTF8('頭條要聞')][0][1]['href'])
 		# sys.stdout.write('[Parsing] -> ')
 		logger.debug('[Parsing] -> ')
 		PageContent = news_api.page_parser(PageContent)
 		# sys.stdout.write('[Compose] -> ')
 		logger.debug('[Compose] -> ')
 		PageContent = rss_api.page_compose(PageContent)
+		PageContent = '<h1>' + title + '</h1>' + PageContent
 		# print('[Write2File]')
 		logger.debug('[Write2File]')
 		rss_api.write2file(PageContent, 'main_story.html')
 	else:
 		RssFileName = {
-			# rss_api.Ch2UTF8('頭條要聞'):'HeadLine',
+			rss_api.Ch2UTF8('頭條要聞'):'HeadLine',
 			rss_api.Ch2UTF8('副刊'):'Supplement',
-			# rss_api.Ch2UTF8('體育'):'Sport',
-			# rss_api.Ch2UTF8('蘋果國際'):'International',
-			# rss_api.Ch2UTF8('娛樂'):'Entertainment',
-			# rss_api.Ch2UTF8('財經'):'Finance',
-			# rss_api.Ch2UTF8('地產'):'Estate',
-			# rss_api.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
-			# rss_api.Ch2UTF8('家居王'):'HouseWorking'
+			rss_api.Ch2UTF8('體育'):'Sport',
+			rss_api.Ch2UTF8('蘋果國際'):'International',
+			rss_api.Ch2UTF8('娛樂'):'Entertainment',
+			rss_api.Ch2UTF8('財經'):'Finance',
+			rss_api.Ch2UTF8('地產'):'Estate',
+			rss_api.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
+			rss_api.Ch2UTF8('家居王'):'HouseWorking'
 		}
 
 		if opt.only_dl:

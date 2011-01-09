@@ -39,6 +39,22 @@ every ad.
 					logger.info('[' + sub_title + '] ' + news_item['title'] + ' : ' + news_item['href'])
 			# print ''
 
+	def string_strip(self, string):
+		'''
+		avoid p tag and space
+		change <br /> to '\n'
+		'''
+		strip_p_p = re.compile("<p.*?>(.*)</p.*?>")
+		string = strip_p_p.findall(string)[0]
+		string = string.replace('\n', '').replace('\r', '')
+		string = string.replace('<br />', '\n').replace('  ', '')
+		if len(string):
+			if string[0] == '\n':
+				string = string[1:]
+			if string[-1] == '\n':
+				string = string[:-1]
+		return string
+
 	def get_title(self, PageContent):
 		p = re.compile('^<title>(.*)\ \|\ .*\ \|\ .*\ \|.*\|.*</title>')
 		Title = p.findall(str(PageContent.title).replace('\n', ''))
@@ -63,7 +79,9 @@ every ad.
 
 		if totally.get('article') is not None:
 			logger.debug('===== article =====')
-			logger.debug(totally.get('article'))
+			for article in totally.get('article'):
+				logger.debug('header : ' +  article['header'])
+				logger.debug('text : ' +  article['text'])
 
 		if totally.get('stepbox') is not None:
 			logger.debug('===== stepbox =====')
@@ -74,7 +92,9 @@ every ad.
 					logger.debug('title : %s', photo.get('title'))
 					logger.debug('big  : %s', photo.get('big'))
 					logger.debug('small : %s', photo.get('small'))
-					logger.debug('text : %s', stepbox.get('text'))
+					text = stepbox.get('text')
+					logger.debug('head : %s', text.get('head'))
+					logger.debug('body : %s', text.get('body'))
 
 				if 'puretext' is stepbox.get('type'):
 					logger.debug('type : %s', stepbox.get('type'))
@@ -191,28 +211,30 @@ every ad.
 
 	def page_parser(self, raw_content):
 		"""
-		return struct of totally list:
-			{
-			  'topic_photo' : {photo},
-			  'article' : str(article_string),
-			  'slide_photo' : [{photo}, {photo}, ...]
-			  'stepbox' : [{'type' : 'normal', 'photo' : {photo}, 'text' : string},
-			               {'type' : 'threepic', 'photos' : [{photo}, {photo{ ..}]
-			  			   {'type' : 'puretext', 'text' : string} ]
-			}
+	{article_dict} : {'header' : string, 'text' : string}
 
-		the struct of photo
-			photo['title'] -> title
-			photo['small'] -> src
-			photo['big'] -> href
+	the struct of photo
+		photo['title'] -> title
+		photo['small'] -> src
+		photo['big'] -> href
 
+	return struct of totally list:
+	{
+	  'topic_photo' : {photo},
+	  'article' : [{article_dict}, {article_dict}, ...],
+	  'slide_photo' : [{photo}, {photo}, ...]
+	  'stepbox' : [{'type' : 'normal', 'photo' : {photo},
+	                                   'text' : {'head' : head, 'body' : text}}
+	               {'type' : 'threepic', 'photos' : [{photo}, {photo{ ..}]
+	  			   {'type' : 'puretext', 'text' : string} ]
+	}
 		"""
 
 		totally = {}
-
-		photo_lists = []
 		photo = {}
+		photo_lists = []
 		article_raw = []
+		article_dict = {}
 
 		# data pre-process
 		start = 0
@@ -245,11 +267,6 @@ every ad.
 			photo_lists.append(copy(photo))
 			next = next.findNext('div', {'class' : 'each_slide'})
 
-		# try to add a photo become topic photo, if it have no artvideo photo and have photo slide.
-		if totally.get('topic_photo') is None and len(photo_lists) > 0:
-			totally['topic_photo'] = copy(photo_lists[0]) # append topic photo
-			photo_lists = photo_lists[1:] # shift
-
 		# append other photo
 		if len(photo_lists) > 0:
 			totally['slide_photo'] = copy(photo_lists)
@@ -259,44 +276,46 @@ every ad.
 		article_p = re.compile("<h2.*\">(.*)\<\/h2\>.*article_text\">(.*)</p>")
 		summary_p = re.compile("<div.*summary\">(.*)")
 		strip_garbage = re.compile("(.*)<!")
+		strip_h1_p = re.compile("<h1.*?>(.*)</.*?>")
 		strip_h2_p = re.compile("<h2.*?>(.*)</.*?>")
 
 		article_paragraph = content.find('article', {'class' : 'article_paragraph'})
 		# article.append(str(article_paragraph.h1)) # topic
 		#strip h2 tag for sub topic
-		h2_tmp = strip_h2_p.findall(str(article_paragraph.h2))[0]
-		article.append('<b>' + h2_tmp + '</b><br />')
+		article_dict['header'] = strip_h2_p.findall(str(article_paragraph.h2))[0]
+		# article.append('<b>' + h2_tmp + '</b><br />')
 
 		# resorting
 		# content = article_paragraph.find('div', {'id' : 'article_content'})
 		content = article_paragraph.find('div', {'class' : 'article_paragraph_box'})
 		# new line free
-		content_split = str(content).replace('\n', '').replace('\r', '')
+		content_sp = str(content).replace('\n', '').replace('\r', '')
 		# tab and space free
-		content_split = content_split.replace('\t', '').replace('  ', '')
+		content_sp = content_sp.replace('\t', '').replace('  ', '')
 		# split
-		content_split = content_split.replace('<h2 id=\"article_title', 'XXXXX<h2 ').split('XXXXX')
+		content_sp = content_sp.replace('<h2 id=\"article_title', 'XXXXX<h2 ').split('XXXXX')
 
-		# article.append(summary_p.findall(content_split[0])[0]) #summary
-		strip = summary_p.findall(content_split[0])[0]
+		# article.append(summary_p.findall(jontent_split[0])[0]) #summary
+		strip = summary_p.findall(content_sp[0])[0]
 
 		# strip like as <!--單圖文字 -->
 		if '<!' in strip:
 			strip = strip_garbage.findall(strip)[0]
 
-		article.append(strip)
-
+		article_dict['text'] = strip.replace('<br />', '\n')
+		totally['article'] = [copy(article_dict),] # append summary
 
 		# finding paragraph
-		for i in content_split[1:]:
+		for i in content_sp[1:]:
 			h2, string = article_p.findall(i)[0]
-			# article.append("<h2>" + h2 + "</h2>")
-			article.append("<br /><b>" + h2 + "</b><br />")
+			article_dict['header'] = h2
 			#avoid garbage info
 			if '.gif' in string:
 				string = ''
-			article.append(string)
-
+				continue
+			# article.append(string)
+			article_dict['text'] = string.replace('<br />', '\n')
+			totally['article'].append(copy(article_dict))
 
 		# process stepbox
 		stepbox = BeautifulSoup(''.join(article_raw)).find('div')
@@ -309,16 +328,22 @@ every ad.
 		while(stepbox):
 			box_bulk = {}
 			if 'normal' in stepbox['class']:
+				string_builk = ''
+				text_dict = box_bulk['text'] = {}
 				photo['title'] = stepbox.a['title']
 				photo['small'] = stepbox.a.img['src']
 				photo['big'] = stepbox.a['href']
 				box_bulk['type'] = 'normal'
 				box_bulk['photo'] = copy(photo)
-				box_bulk['text'] = stepbox.p
+				# strip h1 header and plus bold tag
+				text_dict['head'] = strip_h1_p.findall(str(stepbox.h1))[0]
+				for string in stepbox.findAll('p'):
+					string_builk += self.string_strip(str(string))
+				text_dict['body'] = string_builk
 
 			if 'puretext' in stepbox['class']:
 				box_bulk['type'] = 'puretext'
-				box_bulk['text'] = stepbox.p
+				box_bulk['text'] = self.string_strip(str(stepbox.p))
 
 			if 'threepic' in stepbox['class']:
 				box_bulk['type'] = 'threepic'
@@ -332,8 +357,7 @@ every ad.
 			totally['stepbox'].append(copy(box_bulk))
 			stepbox = stepbox.findNext('div')
 
-
-		totally['article'] = (''.join(article)) # append article
+		# totally['article'] = (''.join(article)) # append article
 
 		self.totally_list_dump(totally)
 
