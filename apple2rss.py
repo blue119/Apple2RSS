@@ -19,7 +19,7 @@ sys.setdefaultencoding('utf8')
 LOG_FILENAME = 'apple2rss.log'
 logging.basicConfig(
 	filename = LOG_FILENAME,
-	level=logging.DEBUG, filemode = 'a',
+	level=logging.INFO, filemode = 'a',
 	datefmt = '%Y-%m-%d %H:%M:%S',
 	format='%(asctime)s : %(name)s : %(levelname)s\t%(message)s')
 
@@ -64,7 +64,8 @@ class rss_tool():
 		Big = photo.get('big')
 
 		TableString = []
-		TableString.append('<table style="float: left; width: 30%; margin: 0 5px 5px 0; font-size: small; text-align: center;">')
+		# TableString.append('<table style="float: left; width: 30%; margin: 0 5px 5px 0; font-size: small; text-align: center;">')
+		TableString.append('<table style="float: left; margin: 0 5px 5px 0; ">')
 		TableString.append('<tr><td><a href="')
 		TableString.append(Big)
 		TableString.append('"><img title="')
@@ -80,6 +81,8 @@ class rss_tool():
 
 		if content.get('slide_photo') is not None:
 			slide_photo = content.get('slide_photo')
+		else:
+			slide_photo = []
 
 		# summary
 		# the content may have no picture in summary.
@@ -97,7 +100,7 @@ class rss_tool():
 				if len(slide_photo):
 					compose.append(self.CreatImgTable(slide_photo[0]))
 					slide_photo = slide_photo[1:]
-				compose.append(article['text'] + '<br />')
+				compose.append(article['text'].replace('\n', '<br />'))
 
 		if content.get('stepbox') is not None:
 			for stepbox in content.get('stepbox'):
@@ -105,18 +108,17 @@ class rss_tool():
 					compose.append(self.CreatImgTable(stepbox.get('photo')))
 					compose.append('<b>' + stepbox.get('text').get('head') + \
 						'</b><br />')
-					compose.append(stepbox.get('text').get('body') + '<br />')
+					compose.append(stepbox.get('text').get('body').replace('\n', '<br />'))
 
 				if 'puretext' is stepbox.get('type'):
-					compose.append(stepbox.get('text') + '<br />')
+					compose.append(stepbox.get('text').replace('\n', '<br />'))
 
 				if 'threepic' is stepbox.get('type'):
 					for photo in stepbox.get('photos'):
 						compose.append(self.CreatImgTable(photo))
 
-		if content.get('slide_photo') is not None:
-			for photo in slide_photo:
-				compose.append(self.CreatImgTable(photo))
+		for photo in slide_photo:
+			compose.append(self.CreatImgTable(photo))
 
 		return ''.join(compose)
 
@@ -328,13 +330,15 @@ if __name__ == '__main__':
 					try:
 						result =  news_api.page_parser(PageContent)
 					except:
-						logger.critical('parse failur')
+						logger.critical('parse failur %s%s', news_api.home_url, news_item['href'])
 						continue
 
 					try:
 						summary.append(rss_api.page_compose(result))
 					except:
-						logger.critical('parse failur')
+						logger.critical('compose failur %s%s', news_api.home_url, news_item['href'])
+						logger.critical('Dump:')
+						logger.critical(str(result))
 						continue
 
 					#summary = [s for s in summary if s != None]

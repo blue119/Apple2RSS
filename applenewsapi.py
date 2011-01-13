@@ -137,6 +137,7 @@ every ad.
 		#pinyin = Pinyin("xpinyin/Mandarin.dat") #zh_tw utf-8 to pinyin
 
 		anchor_title = re.compile('#([\w\-]+).*>(.*)<.*')
+		title_href = re.compile('<a.*"(.*)">(.*)</a>')
 		find_classified_section_id = 'section-news-tab-menu'
 		find_subclassified_section_class = 'left_news_block_sqz'
 
@@ -156,7 +157,7 @@ every ad.
 			sub_classified_set = []
 			top = self.catalog_page.find('div', {'class' : find_subclassified_section_class, 'id' : anchor})
 			classified_title = top.h1.string
-			# print '+++++ ' + classified_title + ' +++++'
+			# logger.info('+++++ ' + classified_title + ' +++++')
 
 			# ------------------------------------------------
 			# a special case for "頭條" sub_classified
@@ -164,8 +165,12 @@ every ad.
 				sub_classified_list = []
 				sub_classified_list.append(top.findNext('h2').string)
 				for news in top.findNext('ul').findAll('a'):
-					news_item['title'] = news.string.replace('…', '')
-					news_item['href'] = news['href']
+					href, title = title_href.findall(str(news))[0]
+					title = title.replace('', '').replace('<br />', '').replace('…', '')
+					# logger.info( '\t' + title + ' - ' + href)
+
+					news_item['title'] = title
+					news_item['href'] = href
 					sub_classified_list.append(copy(news_item))
 				sub_classified_set.append(copy(sub_classified_list))
 
@@ -179,9 +184,12 @@ every ad.
 					sub_classified_list.append(sub_classified.h2.string)
 					# grab news items in sub classified
 					for news in sub_classified.ul.findAll('a'):
-						#print '\t' + news.string.replace('…', '') + ' - ' + news['href']
-						news_item['title'] = news.string.replace('…', '')
-						news_item['href'] = news['href']
+						href, title = title_href.findall(str(news))[0]
+						title = title.replace('', '').replace('<br />', '').replace('…', '')
+						# logger.info( '\t' + title + ' - ' + href)
+
+						news_item['title'] = title
+						news_item['href'] = href
 						sub_classified_list.append(copy(news_item))
 					sub_classified_set.append(copy(sub_classified_list))
 
@@ -193,9 +201,12 @@ every ad.
 				# print sub.h2.string
 				sub_classified_list.append(sub.h2.string)
 				for news in sub.ul.findAll('a'):
-					#print '\t' + news.string.replace('…', '') + ' : ' + news['href']
-					news_item['title'] = news.string.replace('…', '')
-					news_item['href'] = news['href']
+					href, title = title_href.findall(str(news))[0]
+					title = title.replace('', '').replace('<br />', '').replace('…', '')
+					# logger.info( '\t' + title + ' - ' + href)
+
+					news_item['title'] = title
+					news_item['href'] = href
 					sub_classified_list.append(copy(news_item))
 				sub_classified_set.append(copy(sub_classified_list))
 				sub = sub.findNext('div', {'class' : find_subclassified_section_class, 'id' : anchor})
@@ -274,7 +285,7 @@ every ad.
 		# article mining
 		article = []
 		article_p = re.compile("<h2.*\">(.*)\<\/h2\>.*article_text\">(.*)</p>")
-		summary_p = re.compile("<div.*summary\">(.*)")
+		summary_p = re.compile(".*summary\">(.*)<h2.*")
 		strip_garbage = re.compile("(.*)<!")
 		strip_h1_p = re.compile("<h1.*?>(.*)</.*?>")
 		strip_h2_p = re.compile("<h2.*?>(.*)</.*?>")
@@ -283,7 +294,29 @@ every ad.
 		# article.append(str(article_paragraph.h1)) # topic
 		#strip h2 tag for sub topic
 		article_dict['header'] = strip_h2_p.findall(str(article_paragraph.h2))[0]
-		# article.append('<b>' + h2_tmp + '</b><br />')
+
+		#find article photo at top
+		if article_paragraph.find('img') is not None:
+			img_src = article_paragraph.find('img')['src']
+			if 'apple60x60_R.gif' not in img_src:
+				photo['title'] = ''
+				photo['small'] = article_paragraph.find('img')['src']
+				photo['big'] = ''
+				if totally.get('slide_photo') is None:
+					totally['slide_photo'] = copy([photo])
+				else:
+					totally['slide_photo'].insert(0, copy([photo]))
+			else:
+				pass
+
+		#found summary
+		summary = str(article_paragraph.find('p', {'class':'summary'}))
+		summary = summary.replace('\n', '').replace('\r', '')
+		summary = summary.replace('\t', '').replace('  ', '')
+		summary = summary_p.findall(summary)[0]
+		article_dict['text'] = summary.replace('<br />', '\n')
+		totally['article'] = [copy(article_dict),] # append summary
+
 
 		# resorting
 		# content = article_paragraph.find('div', {'id' : 'article_content'})
@@ -295,15 +328,6 @@ every ad.
 		# split
 		content_sp = content_sp.replace('<h2 id=\"article_title', 'XXXXX<h2 ').split('XXXXX')
 
-		# article.append(summary_p.findall(jontent_split[0])[0]) #summary
-		strip = summary_p.findall(content_sp[0])[0]
-
-		# strip like as <!--單圖文字 -->
-		if '<!' in strip:
-			strip = strip_garbage.findall(strip)[0]
-
-		article_dict['text'] = strip.replace('<br />', '\n')
-		totally['article'] = [copy(article_dict),] # append summary
 
 		# finding paragraph
 		for i in content_sp[1:]:
@@ -327,7 +351,7 @@ every ad.
 		# threepic
 		while(stepbox):
 			box_bulk = {}
-			if 'normal' in stepbox['class']:
+			if 'normal' in str(stepbox.get('class')):
 				string_builk = ''
 				text_dict = box_bulk['text'] = {}
 				photo['title'] = stepbox.a['title']
@@ -341,11 +365,11 @@ every ad.
 					string_builk += self.string_strip(str(string))
 				text_dict['body'] = string_builk
 
-			if 'puretext' in stepbox['class']:
+			if 'puretext' in str(stepbox.get('class')):
 				box_bulk['type'] = 'puretext'
 				box_bulk['text'] = self.string_strip(str(stepbox.p))
 
-			if 'threepic' in stepbox['class']:
+			if 'threepic' in str(stepbox.get('class')):
 				box_bulk['type'] = 'threepic'
 				box_bulk['photos'] = []
 				for i in stepbox.findAll('a'):
