@@ -285,10 +285,11 @@ every ad.
 		# article mining
 		article = []
 		article_p = re.compile("<h2.*\">(.*)\<\/h2\>.*article_text\">(.*)</p>")
-		summary_p = re.compile(".*summary\">(.*)<h2.*")
+		summary_p = re.compile(".*summary\">(.*)<[h2|!].*")
 		strip_garbage = re.compile("(.*)<!")
 		strip_h1_p = re.compile("<h1.*?>(.*)</.*?>")
 		strip_h2_p = re.compile("<h2.*?>(.*)</.*?>")
+		strip_a_p = re.compile("<a.*?>(.*)</a.*?>")
 
 		article_paragraph = content.find('article', {'class' : 'article_paragraph'})
 		# article.append(str(article_paragraph.h1)) # topic
@@ -298,23 +299,24 @@ every ad.
 		#find article photo at top
 		if article_paragraph.find('img') is not None:
 			img_src = article_paragraph.find('img')['src']
-			if 'apple60x60_R.gif' not in img_src:
+			if '.gif' not in img_src:
 				photo['title'] = ''
 				photo['small'] = article_paragraph.find('img')['src']
 				photo['big'] = ''
 				if totally.get('slide_photo') is None:
 					totally['slide_photo'] = copy([photo])
 				else:
-					totally['slide_photo'].insert(0, copy([photo]))
+					totally['slide_photo'].insert(0, copy(photo))
 			else:
 				pass
 
 		#found summary
 		summary = str(article_paragraph.find('p', {'class':'summary'}))
-		summary = summary.replace('\n', '').replace('\r', '')
+		# summary = summary.replace('\n', '').replace('\r', '').replace('<br />', '\n')
+		summary = summary.replace('\n', '').replace('\r', '').replace('<br />', '')
 		summary = summary.replace('\t', '').replace('  ', '')
 		summary = summary_p.findall(summary)[0]
-		article_dict['text'] = summary.replace('<br />', '\n')
+		article_dict['text'] = summary
 		totally['article'] = [copy(article_dict),] # append summary
 
 

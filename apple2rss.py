@@ -137,14 +137,17 @@ class rss_tool():
 				return None
 
 		# some page only include redirect path
-		page_redirect = BeautifulSoup(html_page).find('script').string
-		if page_redirect is not None:
-			redirect_p = re.compile('[/W]+(.*)\"')
-			redirect_url = redirect_p.findall(page_redirect)[0]
-			logger.info('page redirect to %s', redirect_url)
-			if 'http' not in redirect_url:
-				redirect_url = self.home_url + redirect_url
-			return self.GetPage(redirect_url)
+		try:
+			page_redirect = BeautifulSoup(html_page).find('script').string
+			if page_redirect is not None:
+				redirect_p = re.compile('[/W]+(.*)\"')
+				redirect_url = redirect_p.findall(page_redirect)[0]
+				logger.info('page redirect to %s', redirect_url)
+				if 'http' not in redirect_url:
+					redirect_url = self.home_url + redirect_url
+				return self.GetPage(redirect_url)
+		except:
+			pass
 
 		return html_page
 
