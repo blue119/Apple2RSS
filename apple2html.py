@@ -18,50 +18,72 @@ sys.setdefaultencoding('utf8')
 
 LOG_FILENAME = 'apple2rss.log'
 logging.basicConfig(
-	filename = LOG_FILENAME,
-	# level=logging.INFO, filemode = 'a',
+	# filename = LOG_FILENAME,
+	level=logging.INFO, filemode = 'a',
 	datefmt = '%Y-%m-%d %H:%M:%S',
 	format='%(asctime)s : %(name)s : %(levelname)s\t%(message)s')
 
 logger = logging.getLogger('apple2rss.main')
 
 
-class rss_tool():
+class html_tool():
 	def __init__(self, prefix_url):
-		self.logger = logging.getLogger('apple2rss.rss_tool')
+		self.logger = logging.getLogger('apple2rss.html_tool')
 		self.home_url = prefix_url
+		self.store_in = ''
 
 	def PastHeader(self, f, classify):
-		f.write('<?xml version="1.0" encoding="utf-8"?>\n')
-		f.write('<rss xmlns:feedburner="http://rssnamespace.org/feedburner/ext/1.0" version="2.0">\n')
-		f.write('<channel>\n')
-		f.write('<title>今日蘋果新聞</title>\n')
-		f.write('<link><![CDATA[http://1-apple.com.tw/index.cfm?Fuseaction=AppleSection]]></link>\n')
-		f.write('<description><![CDATA[' + classify + ']]></description>\n')
-		f.write('<webMaster><![CDATA[twonline@1-apple.com.tw]]></webMaster>\n')
-		f.write('<rights><![CDATA[壹蘋果網絡]]></rights>\n')
-		f.write('<language>zh-TW</language>\n')
-		f.write('<ttl>60</ttl>\n')
-		f.write('<update>' + strftime("%a, %d %b %Y %H:%M:%S") + '</update>\n')
-		#f.write('<update>' + strftime("%a, %d %b %Y %H:%M:%S +0800", gmtime()) + '</update>\n')
+		f.write('<html>\n')
+		f.write('\t<head>\n')
+		f.write('\t\t<title>' + classify + strftime("%a, %d %b %Y %H:%M:%S") + '</title>\n')
+		f.write('\t\t<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n')
+		f.write('\t\t<style type="text/css" media="all">\n')
+		f.write('\t\t\t#border {\n')
+		f.write('\t\t\t\tborder: 1px dashed #ccc;\n')
+		f.write('\t\t\t}\n')
+		f.write('\t\t</style>\n')
+		f.write('\t</head>\n')
+		f.write('\t<body>\n')
+		f.write('\n')
 
 	def PastTail(self, f):
 		f.write('\n')
-		f.write('</channel>\n')
-		f.write('</rss>\n')
+		f.write('\t</body>\n')
+		f.write('</html>\n')
 
 	def PastEntry(self, f, title, link, summary, classify):
-		f.write('\n')
-		f.write('<item>\n')
-		f.write('<title><![CDATA[【' + classify + '】' + title + ']]></title>\n')
-		f.write('<pubDate>' + strftime("%a, %d %b %Y %H:%M:%S") + '</pubDate>\n')
-		f.write('<description><![CDATA[' + summary + ']]></description>\n')
-		f.write('</item>\n')
+		f.write('\t\t<h4>【' + classify + '】' + title + '</h4>\n')
+		f.write('\t\t<p id="border">\n')
+		f.write('\t\t\t' +  summary + '\n')
+		f.write('\t\t</p>\n')
 
-	def CreatImgTable(self, photo):
+	def photo_dl_save(self, url):
+		file_name = re.compile('.*\/([\w\.]+jpg)$').findall(url)[0]
+		f = urlopen(url)
+		local_file = open(api.store_in + '/img/' + file_name, "w")
+		local_file.write(f.read())
+		local_file.close()
+		return file_name
+
+	def CreatImgTable(self, photo, img_dl=True):
+		'''
+		if the img_dl is true, it will download image and replace url to local site.
+		'''
 		Title = photo.get('title')
-		Small = photo.get('small')
-		Big = photo.get('big')
+		if img_dl:
+			#FIXME
+			if photo.get('small') == '':
+				Small = ''
+			else:
+				Small = 'img/' + self.photo_dl_save(photo.get('small'))
+
+			if photo.get('big') == '':
+				Big = ''
+			else:
+				Big = 'img/' + self.photo_dl_save(photo.get('big'))
+		else:
+			Small = photo.get('small')
+			Big = photo.get('big')
 
 		TableString = []
 		# TableString.append('<table style="float: left; width: 30%; margin: 0 5px 5px 0; font-size: small; text-align: center;">')
@@ -87,8 +109,9 @@ class rss_tool():
 		# summary
 		# the content may have no picture in summary.
 		if content.get('topic_photo') is not None:
-			compose.append("<img width=\"315\" src=\"" + \
-				content.get('topic_photo').get('small')  + "\"/><br /></p>")
+			compose.append("<img width=\"480\" src=\"" + \
+				'img/' + self.photo_dl_save(content.get('topic_photo').get('small'))  + \
+				"\"/><br />")
 
 		# if content.get('slide_photo') is not None:
 			# compose.append(self.CreatImgTable(slide_photo[0]))
@@ -121,11 +144,6 @@ class rss_tool():
 			compose.append(self.CreatImgTable(photo))
 
 		return ''.join(compose)
-
-
-__version__ = "apple2rss Ver:0.0.1"
-__author__ = "Yao-Po Wang (blue119@gmail.com)"
-__USAGE__ = "usage: python %prog"
 
 def main_argv_parser(argv):
 	opt_dic = {}
@@ -174,6 +192,10 @@ def mkdir(path, delete):
 		logger.info("create: %s",  path)
 		os.mkdir(path)
 
+__version__ = "apple2rss Ver:0.0.1"                                              
+__author__ = "Yao-Po Wang (blue119@gmail.com)"                                   
+__USAGE__ = "usage: python %prog"
+
 if __name__ == '__main__':
 	opt = main_argv_parser(sys.argv)
 	from applenewsapi import apple_news_api
@@ -183,21 +205,16 @@ if __name__ == '__main__':
 
 	if opt.page is not None:
 		news_api = apple_news_api()
-		rss_api = rss_tool(news_api.home_url)
+		api = html_tool(news_api.home_url)
 		#f = open(opt.page, "r")
 		#PageContent = f.readlines()
 		PageContent = utils.GetPage(opt.page)
 		#PageContent = BeautifulSoup(''.join(PageContent))
 		PageContent = news_api.page_parser(PageContent)
-		PageContent = rss_api.page_compose(PageContent)
+		PageContent = api.page_compose(PageContent)
 		# PageContent = '<h1>' + title + '</h1>' + PageContent
 		utils.write2file(PageContent, 'main_story.html')
 		sys.exit()
-
-	#folder create
-	store_in = opt.folder + "/" + strftime("%Y-%m-%d", localtime())
-	mkdir(opt.folder, False)
-	mkdir(store_in, False)
 
 	"""
 	Reference:
@@ -211,9 +228,20 @@ if __name__ == '__main__':
 	news_api.get_list()
 	news_api.show_news_list()
 
-	rss_api = rss_tool(news_api.home_url)
+	api = html_tool(news_api.home_url)
+
+	#folder create
+	api.store_in = opt.folder + "/" + strftime("%Y-%m-%d", localtime())
+	mkdir(opt.folder, False)
+	mkdir(api.store_in, False)
+	mkdir(api.store_in + '/img', False)
 
 	if opt.debug:
+		mkdir("main_story", False)
+		mkdir("main_story/img", False)
+		api.store_in = "main_story"
+		f = open('main_story/main_story.html', 'w')
+
 		title = news_api.news_lists[utils.Ch2UTF8('頭條要聞')][0][1]['title']
 		logger.debug('Get [%s]', title)
 		PageContent = utils.GetPage(news_api.home_url + \
@@ -223,11 +251,12 @@ if __name__ == '__main__':
 		PageContent = news_api.page_parser(PageContent)
 		# sys.stdout.write('[Compose] -> ')
 		logger.debug('[Compose] -> ')
-		PageContent = rss_api.page_compose(PageContent)
-		PageContent = '<h1>' + title + '</h1>' + PageContent
+		api.PastHeader(f, "頭條要聞")
+		PageContent = api.page_compose(PageContent)
 		# print('[Write2File]')
 		logger.debug('[Write2File]')
-		utils.write2file(PageContent, 'main_story.html')
+		api.PastEntry(f, title, news_api.home_url + news_api.news_lists[utils.Ch2UTF8('頭條要聞')][0][1]['href'], ''.join(PageContent), "頭條")
+		api.PastTail(f)
 	else:
 		RssFileName = {
 			utils.Ch2UTF8('頭條要聞'):'HeadLine',
@@ -243,7 +272,7 @@ if __name__ == '__main__':
 
 		if opt.only_dl:
 			for Classify in news_api.news_lists:
-				ClassifyPath = store_in + "/" + RssFileName[Classify]
+				ClassifyPath = api.store_in + "/" + RssFileName[Classify]
 				mkdir(ClassifyPath, True)
 				print '\n------------- ' + Classify + ' -------------'
 				for NewsList in news_api.news_lists[Classify]:
@@ -267,11 +296,11 @@ if __name__ == '__main__':
 		PageContent = []
 		for Classify in news_api.news_lists:
 			try:
-				f = open(store_in + "/" + RssFileName[Classify] + '_RSS.html', 'w')
+				f = open(api.store_in + "/" + RssFileName[Classify] + '_RSS.html', 'w')
 			except KeyError:
 				logger.info('%s, not support' % (Classify))
 				continue
-			rss_api.PastHeader(f, str(Classify))
+			api.PastHeader(f, str(Classify))
 			logger.info('------------- %s -------------', Classify)
 			for NewsList in news_api.news_lists[Classify]:
 				subClassify = NewsList[0]
@@ -296,7 +325,7 @@ if __name__ == '__main__':
 						continue
 
 					try:
-						summary.append(rss_api.page_compose(result))
+						summary.append(api.page_compose(result))
 					except:
 						logger.critical('compose failur %s%s', news_api.home_url, news_item['href'])
 						logger.critical('Dump:')
@@ -304,9 +333,9 @@ if __name__ == '__main__':
 						continue
 
 					#summary = [s for s in summary if s != None]
-					rss_api.PastEntry(f, news_item['title'], news_api.home_url + news_item['href'], ''.join(summary), subClassify)
+					api.PastEntry(f, news_item['title'], news_api.home_url + news_item['href'], ''.join(summary), subClassify)
 					sleep(1)
 					#print ''.join(summary)
-			rss_api.PastTail(f)
+			api.PastTail(f)
 			f.close()
 

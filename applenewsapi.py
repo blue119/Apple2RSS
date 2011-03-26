@@ -137,7 +137,7 @@ every ad.
 		#pinyin = Pinyin("xpinyin/Mandarin.dat") #zh_tw utf-8 to pinyin
 
 		anchor_title = re.compile('#([\w\-]+).*>(.*)<.*')
-		title_href = re.compile('<a.*"(.*)">(.*)</a>')
+		title_href = re.compile('<a href="(.*)" title="(.*)">.*</a>')
 		find_classified_section_id = 'section-news-tab-menu'
 		find_subclassified_section_class = 'left_news_block_sqz'
 
@@ -151,12 +151,12 @@ every ad.
 		#get classify
 		for cl in  self.catalog_page.find('div', {'id' : find_classified_section_id}).findAll('a'):
 			anchor, title = anchor_title.findall(str(cl))[0]
-			classified_lists[title] = anchor
+			classified_lists[title] = "snr-main" + str(anchor)
 
 		for anchor in classified_lists.itervalues():
 			sub_classified_set = []
 			top = self.catalog_page.find('div', {'class' : find_subclassified_section_class, 'id' : anchor})
-			classified_title = top.h1.string
+			classified_title = top.h1.contents[0]
 			# logger.info('+++++ ' + classified_title + ' +++++')
 
 			# ------------------------------------------------
