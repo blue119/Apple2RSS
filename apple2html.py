@@ -58,7 +58,7 @@ class html_tool():
 		f.write('\t\t</p>\n')
 
 	def photo_dl_save(self, url):
-		file_name = re.compile('.*\/([\w\.]+jpg)$').findall(url)[0]
+		file_name = re.compile('.*\/([\w\.\-]+jpg)$').findall(url)[0]
 		f = urlopen(url)
 		local_file = open(api.store_in + '/img/' + file_name, "w")
 		local_file.write(f.read())
