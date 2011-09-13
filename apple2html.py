@@ -3,339 +3,361 @@
 
 from urllib import urlopen
 from BeautifulSoup import BeautifulSoup
-from time import gmtime, strftime, sleep, localtime
+from time import gmtime, strftime, sleep, localtime, time
 from copy import copy
 from applenewsapi import apple_news_api
 from socket import setdefaulttimeout
+from shutil import rmtree
 import sys, re
 import urllib2
 import optparse
 import os
 import logging
+import traceback
 
 reload(sys)
 sys.setdefaultencoding('utf8')
 
-LOG_FILENAME = 'apple2rss.log'
+LOG_FILENAME = 'logs/apple2rss_%s.log' % (strftime("%Y_%m_%d_%H_%M_%S", localtime()))
 logging.basicConfig(
-	# filename = LOG_FILENAME,
-	level=logging.INFO, filemode = 'a',
-	datefmt = '%Y-%m-%d %H:%M:%S',
-	format='%(asctime)s : %(name)s : %(levelname)s\t%(message)s')
+    # filename = LOG_FILENAME,
+    level=logging.INFO, filemode = 'a',
+    datefmt = '%Y-%m-%d %H:%M:%S',
+    format='%(asctime)s : %(name)s : %(levelname)s\t%(message)s')
 
 logger = logging.getLogger('apple2rss.main')
 
 
 class html_tool():
-	def __init__(self, prefix_url):
-		self.logger = logging.getLogger('apple2rss.html_tool')
-		self.home_url = prefix_url
-		self.store_in = ''
+    def __init__(self, prefix_url):
+        self.logger = logging.getLogger('apple2rss.html_tool')
+        self.home_url = prefix_url
+        self.store_in = ''
 
-	def PastHeader(self, f, classify):
-		f.write('<html>\n')
-		f.write('\t<head>\n')
-		f.write('\t\t<title>' + classify + strftime("%a, %d %b %Y %H:%M:%S") + '</title>\n')
-		f.write('\t\t<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n')
-		f.write('\t\t<style type="text/css" media="all">\n')
-		f.write('\t\t\t#border {\n')
-		f.write('\t\t\t\tborder: 1px dashed #ccc;\n')
-		f.write('\t\t\t}\n')
-		f.write('\t\t</style>\n')
-		f.write('\t</head>\n')
-		f.write('\t<body>\n')
-		f.write('\n')
+    def PastHeader(self, f, classify):
+        f.write('<html>\n')
+        f.write('\t<head>\n')
+        f.write('\t\t<title>' + classify + strftime("%a, %d %b %Y %H:%M:%S") + '</title>\n')
+        f.write('\t\t<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n')
+        f.write('\t\t<style type="text/css" media="all">\n')
+        f.write('\t\t\t#border {\n')
+        f.write('\t\t\t\tborder: 1px dashed #ccc;\n')
+        f.write('\t\t\t}\n')
+        f.write('\t\t</style>\n')
+        f.write('\t</head>\n')
+        f.write('\t<body>\n')
+        f.write('\n')
 
-	def PastTail(self, f):
-		f.write('\n')
-		f.write('\t</body>\n')
-		f.write('</html>\n')
+    def PastTail(self, f):
+        f.write('\n')
+        f.write('\t</body>\n')
+        f.write('</html>\n')
 
-	def PastEntry(self, f, title, link, summary, classify):
-		f.write('\t\t<h4>【' + classify + '】' + title + '</h4>\n')
-		f.write('\t\t<p id="border">\n')
-		f.write('\t\t\t' +  summary + '\n')
-		f.write('\t\t</p>\n')
+    def PastEntry(self, f, title, link, summary, classify):
+        f.write('\t\t<h4>【' + classify + '】' + title + '</h4>\n')
+        f.write('\t\t<p id="border">\n')
+        f.write('\t\t\t' +  summary + '\n')
+        f.write('\t\t</p>\n')
 
-	def photo_dl_save(self, url):
-		file_name = re.compile('.*\/([\w\.\-]+jpg)$').findall(url)[0]
-		f = urlopen(url)
-		local_file = open(api.store_in + '/img/' + file_name, "w")
-		local_file.write(f.read())
-		local_file.close()
-		return file_name
+    def photo_dl_save(self, url):
+        file_name = re.compile('.*\/([\w\.\-]+[jpg|JPG])$').findall(url)[0]
+        f = urlopen(url)
+        local_file = open(api.store_in + '/img/' + file_name, "w")
+        local_file.write(f.read())
+        local_file.close()
+        return file_name
 
-	def CreatImgTable(self, photo, img_dl=True):
-		'''
-		if the img_dl is true, it will download image and replace url to local site.
-		'''
-		Title = photo.get('title')
-		if img_dl:
-			#FIXME
-			if photo.get('small') == '':
-				Small = ''
-			else:
-				Small = 'img/' + self.photo_dl_save(photo.get('small'))
+    def CreatImgTable(self, photo, img_dl=True):
+        '''
+        if the img_dl is true, it will download image and replace url to local site.
+        '''
+        Title = photo.get('title')
+        if img_dl:
+            #FIXME
+            if photo.get('small') == '':
+                Small = ''
+            else:
+                Small = 'img/' + self.photo_dl_save(photo.get('small'))
 
-			if photo.get('big') == '':
-				Big = ''
-			else:
-				Big = 'img/' + self.photo_dl_save(photo.get('big'))
-		else:
-			Small = photo.get('small')
-			Big = photo.get('big')
+            if photo.get('big') == '':
+                Big = ''
+            else:
+                Big = 'img/' + self.photo_dl_save(photo.get('big'))
+        else:
+            Small = photo.get('small')
+            Big = photo.get('big')
 
-		TableString = []
-		# TableString.append('<table style="float: left; width: 30%; margin: 0 5px 5px 0; font-size: small; text-align: center;">')
-		TableString.append('<table style="float: left; margin: 0 5px 5px 0; ">')
-		TableString.append('<tr><td><a href="')
-		TableString.append(Big)
-		TableString.append('"><img title="')
-		TableString.append(Title)
-		TableString.append('" src="')
-		TableString.append(Small)
-		TableString.append('" /></td>')
-		TableString.append('</tr></table>')
-		return ''.join(TableString)
+        TableString = []
+        # TableString.append('<table style="float: left; width: 30%; margin: 0 5px 5px 0; font-size: small; text-align: center;">')
+        TableString.append('<table style="float: left; margin: 0 5px 5px 0; ">')
+        TableString.append('<tr><td><a href="')
+        TableString.append(Big)
+        TableString.append('"><img title="')
+        TableString.append(Title)
+        TableString.append('" src="')
+        TableString.append(Small)
+        TableString.append('" /></td>')
+        TableString.append('</tr></table>')
+        return ''.join(TableString)
 
-	def page_compose(self, content):
-		compose = []
+    def page_compose(self, content):
+        compose = []
 
-		if content.get('slide_photo') is not None:
-			slide_photo = content.get('slide_photo')
-		else:
-			slide_photo = []
+        if content.get('slide_photo') is not None:
+            slide_photo = content.get('slide_photo')
+        else:
+            slide_photo = []
 
-		# summary
-		# the content may have no picture in summary.
-		if content.get('topic_photo') is not None:
-			compose.append("<img width=\"480\" src=\"" + \
-				'img/' + self.photo_dl_save(content.get('topic_photo').get('small'))  + \
-				"\"/><br />")
+        # summary
+        # the content may have no picture in summary.
+        if content.get('topic_photo') is not None:
+            compose.append("<img width=\"480\" src=\"" + \
+                'img/' + self.photo_dl_save(content.get('topic_photo').get('small'))  + \
+                "\"/><br />")
 
-		# if content.get('slide_photo') is not None:
-			# compose.append(self.CreatImgTable(slide_photo[0]))
-			# slide_photo = slide_photo[1:]
+        # if content.get('slide_photo') is not None:
+            # compose.append(self.CreatImgTable(slide_photo[0]))
+            # slide_photo = slide_photo[1:]
 
-		if content.get('article') is not None:
-			for article in content.get('article'):
-				compose.append('<br /><b>' + article['header'] + '</b><br />')
-				if len(slide_photo):
-					compose.append(self.CreatImgTable(slide_photo[0]))
-					slide_photo = slide_photo[1:]
-				compose.append(article['text'].replace('\n', '<br />'))
+        if content.get('article') is not None:
+            for article in content.get('article'):
+                compose.append('<br /><b>' + article['header'] + '</b><br />')
+                if len(slide_photo):
+                    compose.append(self.CreatImgTable(slide_photo[0]))
+                    slide_photo = slide_photo[1:]
+                compose.append(article['text'].replace('\n', '<br />'))
 
-		if content.get('stepbox') is not None:
-			for stepbox in content.get('stepbox'):
-				if 'normal' is stepbox.get('type'):
-					compose.append(self.CreatImgTable(stepbox.get('photo')))
-					compose.append('<b>' + stepbox.get('text').get('head') + \
-						'</b><br />')
-					compose.append(stepbox.get('text').get('body').replace('\n', '<br />'))
+        if content.get('stepbox') is not None:
+            for stepbox in content.get('stepbox'):
+                if 'normal' is stepbox.get('type'):
+                    compose.append(self.CreatImgTable(stepbox.get('photo')))
+                    compose.append('<b>' + stepbox.get('text').get('head') + \
+                        '</b><br />')
+                    compose.append(stepbox.get('text').get('body').replace('\n', '<br />'))
 
-				if 'puretext' is stepbox.get('type'):
-					compose.append(stepbox.get('text').replace('\n', '<br />'))
+                if 'puretext' is stepbox.get('type'):
+                    compose.append(stepbox.get('text').replace('\n', '<br />'))
 
-				if 'threepic' is stepbox.get('type'):
-					for photo in stepbox.get('photos'):
-						compose.append(self.CreatImgTable(photo))
+                if 'threepic' is stepbox.get('type'):
+                    for photo in stepbox.get('photos'):
+                        compose.append(self.CreatImgTable(photo))
 
-		for photo in slide_photo:
-			compose.append(self.CreatImgTable(photo))
+        for photo in slide_photo:
+            compose.append(self.CreatImgTable(photo))
 
-		return ''.join(compose)
+        return ''.join(compose)
 
 def main_argv_parser(argv):
-	opt_dic = {}
-	option_parser = optparse.OptionParser(usage=__USAGE__, version=__version__)
-	option_parser.disable_interspersed_args()
+    opt_dic = {}
+    option_parser = optparse.OptionParser(usage=__USAGE__, version=__version__)
+    option_parser.disable_interspersed_args()
 
-	option_parser.add_option("-S", "--save", action="store_true", dest="save",
-		help=("like as -D, not only download the news page, but also do transform."))
-	option_parser.add_option("-D", "--download", action="store_true", dest="only_dl",
-		help=("only to download news page don't transform to rss format."))
-	option_parser.add_option("-d", "--debug", action="store_true", dest="debug",
-		help=("Open debug mode"))
-	option_parser.add_option("-f", "--folder", action="store", type="string",
-		dest="folder", default="public_html", help=("Slecte a folder, store in.\n"
-		"If it's not exist will be create. default is \"public_html\""))
-	option_parser.add_option("-p", "--page", action="store", dest="page", type="string",
-		help=("Convert the PAGE to rss file save in /tmp/apple.html.\n"))
+    option_parser.add_option("-S", "--save", action="store_true", dest="save",
+        help=("like as -D, not only download the news page, but also do transform."))
+    option_parser.add_option("-D", "--download", action="store_true", dest="only_dl",
+        help=("only to download news page don't transform to rss format."))
+    option_parser.add_option("-d", "--debug", action="store_true", dest="debug",
+        help=("Open debug mode"))
+    option_parser.add_option("-f", "--folder", action="store", type="string",
+        dest="folder", default="public_html", help=("Slecte a folder, store in.\n"
+        "If it's not exist will be create. default is \"public_html\""))
+    option_parser.add_option("-p", "--page", action="store", dest="page", type="string",
+        help=("Convert the PAGE to rss file save in /tmp/apple.html.\n"))
 
-	(options, args) = option_parser.parse_args(argv[1:])
-	if len(args) < 2:
-		# Users don't need to be told to use the 'help' command.
-		#option_parser.print_help()
-		#sys.exit()
-		return options
+    (options, args) = option_parser.parse_args(argv[1:])
+    if len(args) < 2:
+        # Users don't need to be told to use the 'help' command.
+        #option_parser.print_help()
+        #sys.exit()
+        return options
 
-	# Add manual support for --version as first argument.
-	if argv[1] == '--version':
-		option_parser.print_version()
-		sys.exit()
+    # Add manual support for --version as first argument.
+    if argv[1] == '--version':
+        option_parser.print_version()
+        sys.exit()
 
-	# Add manual support for --help as first argument.
-	if argv[1] == '--help' or argv[1] == '-h':
-		option_parser.print_help()
-		sys.exit()
+    # Add manual support for --help as first argument.
+    if argv[1] == '--help' or argv[1] == '-h':
+        option_parser.print_help()
+        sys.exit()
 
-	return options
+    return options
+
+
 
 def mkdir(path, delete):
-	if os.path.isdir(path):
-		if delete:
-			logger.info("delete -> %s",  path)
-			os.rmdir(path)
-			logger.info("create: %s",  path)
-			os.mkdir(path)
-	else:
-		logger.info("create: %s",  path)
-		os.mkdir(path)
+    if os.path.isdir(path):
+        if delete:
+            logger.info("delete -> %s",  path)
+            rmtree(path)
+            logger.info("create: %s",  path)
+            os.mkdir(path)
+    else:
+        logger.info("create: %s",  path)
+        os.mkdir(path)
 
-__version__ = "apple2rss Ver:0.0.1"                                              
-__author__ = "Yao-Po Wang (blue119@gmail.com)"                                   
+__version__ = "apple2rss Ver:0.0.1"
+__author__ = "Yao-Po Wang (blue119@gmail.com)"
 __USAGE__ = "usage: python %prog"
 
 if __name__ == '__main__':
-	opt = main_argv_parser(sys.argv)
-	from applenewsapi import apple_news_api
-	from utils import utils
-	utils = utils()
+    time_start = time()
+    opt = main_argv_parser(sys.argv)
+    from applenewsapi import apple_news_api
+    from utils import utils
+    utils = utils()
 
 
-	if opt.page is not None:
-		news_api = apple_news_api()
-		api = html_tool(news_api.home_url)
-		#f = open(opt.page, "r")
-		#PageContent = f.readlines()
-		PageContent = utils.GetPage(opt.page)
-		#PageContent = BeautifulSoup(''.join(PageContent))
-		PageContent = news_api.page_parser(PageContent)
-		PageContent = api.page_compose(PageContent)
-		# PageContent = '<h1>' + title + '</h1>' + PageContent
-		utils.write2file(PageContent, 'main_story.html')
-		sys.exit()
+    if opt.page is not None:
+        time_start_one_page = time()
+        news_api = apple_news_api()
+        api = html_tool(news_api.home_url)
+        api.store_in = "one_page/"
+        mkdir(api.store_in, True)
+        mkdir(api.store_in + '/img', True)
+        #f = open(opt.page, "r")
+        #PageContent = f.readlines()
+        PageContent = utils.GetPage(opt.page)
+        #PageContent = BeautifulSoup(''.join(PageContent))
+        PageContent = news_api.page_parser(PageContent)
+        PageContent = api.page_compose(PageContent)
+        # PageContent = '<h1>' + title + '</h1>' + PageContent
+        PageContent = '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>' + PageContent
+        utils.write2file(PageContent, api.store_in + 'main_story.html')
+        logger.info("get one page spend %d sec", time() - time_start_one_page)
+        sys.exit()
 
-	"""
-	Reference:
-		HOWTO Fetch Internet Resources with Python: http://www.voidspace.org.uk/python/articles/urllib2.shtml
-	"""
-	# some connection timeout in seconds
-	timeout = 10
-	setdefaulttimeout(timeout)
+    """
+    Reference:
+        HOWTO Fetch Internet Resources with Python: http://www.voidspace.org.uk/python/articles/urllib2.shtml
+    """
+    # some connection timeout in seconds
+    timeout = 10
+    setdefaulttimeout(timeout)
 
-	news_api = apple_news_api()
-	news_api.get_list()
-	news_api.show_news_list()
+    time_start_get_list = time()
+    news_api = apple_news_api()
+    news_api.get_list()
+    time_end_get_list = time() - time_start_get_list
+    news_api.show_news_list()
+    logger.info("get list spend %d sec", time_end_get_list)
 
-	api = html_tool(news_api.home_url)
+    api = html_tool(news_api.home_url)
 
-	#folder create
-	api.store_in = opt.folder + "/" + strftime("%Y-%m-%d", localtime())
-	mkdir(opt.folder, False)
-	mkdir(api.store_in, False)
-	mkdir(api.store_in + '/img', False)
+    #folder create
+    api.store_in = opt.folder + "/" + strftime("%Y-%m-%d", localtime())
+    mkdir(opt.folder, False)
+    mkdir(api.store_in, False)
+    mkdir(api.store_in + '/img', False)
 
-	if opt.debug:
-		mkdir("main_story", False)
-		mkdir("main_story/img", False)
-		api.store_in = "main_story"
-		f = open('main_story/main_story.html', 'w')
+    if opt.debug:
+        mkdir("main_story", False)
+        mkdir("main_story/img", False)
+        api.store_in = "main_story"
+        f = open('main_story/main_story.html', 'w')
 
-		title = news_api.news_lists[utils.Ch2UTF8('頭條要聞')][0][1]['title']
-		logger.debug('Get [%s]', title)
-		PageContent = utils.GetPage(news_api.home_url + \
-			news_api.news_lists[utils.Ch2UTF8('頭條要聞')][0][1]['href'])
-		# sys.stdout.write('[Parsing] -> ')
-		logger.debug('[Parsing] -> ')
-		PageContent = news_api.page_parser(PageContent)
-		# sys.stdout.write('[Compose] -> ')
-		logger.debug('[Compose] -> ')
-		api.PastHeader(f, "頭條要聞")
-		PageContent = api.page_compose(PageContent)
-		# print('[Write2File]')
-		logger.debug('[Write2File]')
-		api.PastEntry(f, title, news_api.home_url + news_api.news_lists[utils.Ch2UTF8('頭條要聞')][0][1]['href'], ''.join(PageContent), "頭條")
-		api.PastTail(f)
-	else:
-		RssFileName = {
-			utils.Ch2UTF8('頭條要聞'):'HeadLine',
-			utils.Ch2UTF8('副刊'):'Supplement',
-			utils.Ch2UTF8('體育'):'Sport',
-			utils.Ch2UTF8('蘋果國際'):'International',
-			utils.Ch2UTF8('娛樂'):'Entertainment',
-			utils.Ch2UTF8('財經'):'Finance',
-			utils.Ch2UTF8('地產'):'Estate',
-			utils.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
-			utils.Ch2UTF8('家居王'):'HouseWorking'
-		}
+        title = news_api.news_lists[utils.Ch2UTF8('頭條要聞')][0][1]['title']
+        logger.debug('Get [%s]', title)
+        PageContent = utils.GetPage(news_api.home_url + \
+            news_api.news_lists[utils.Ch2UTF8('頭條要聞')][0][1]['href'])
+        # sys.stdout.write('[Parsing] -> ')
+        logger.debug('[Parsing] -> ')
+        PageContent = news_api.page_parser(PageContent)
+        # sys.stdout.write('[Compose] -> ')
+        logger.debug('[Compose] -> ')
+        api.PastHeader(f, "頭條要聞")
+        PageContent = api.page_compose(PageContent)
+        # print('[Write2File]')
+        logger.debug('[Write2File]')
+        api.PastEntry(f, title, news_api.home_url + news_api.news_lists[utils.Ch2UTF8('頭條要聞')][0][1]['href'], ''.join(PageContent), "頭條")
+        api.PastTail(f)
+        time_start_one_page = time()
+    else:
+        RssFileName = {
+            # utils.Ch2UTF8('頭條要聞'):'HeadLine',
+            # utils.Ch2UTF8('副刊'):'Supplement',
+            utils.Ch2UTF8('體育'):'Sport',
+            utils.Ch2UTF8('蘋果國際'):'International',
+            utils.Ch2UTF8('娛樂'):'Entertainment',
+            utils.Ch2UTF8('財經'):'Finance',
+            utils.Ch2UTF8('地產'):'Estate',
+            utils.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
+            utils.Ch2UTF8('家居王'):'HouseWorking'
+        }
 
-		if opt.only_dl:
-			for Classify in news_api.news_lists:
-				ClassifyPath = api.store_in + "/" + RssFileName[Classify]
-				mkdir(ClassifyPath, True)
-				print '\n------------- ' + Classify + ' -------------'
-				for NewsList in news_api.news_lists[Classify]:
-					f = open(ClassifyPath + "/" + NewsList['href'].split('/')[-3] + '.html', 'w')
+        if opt.only_dl:
+            for Classify in news_api.news_lists:
+                ClassifyPath = api.store_in + "/" + RssFileName[Classify]
+                mkdir(ClassifyPath, True)
+                print '\n------------- ' + Classify + ' -------------'
+                for NewsList in news_api.news_lists[Classify]:
+                    f = open(ClassifyPath + "/" + NewsList['href'].split('/')[-3] + '.html', 'w')
 
-					PageContent = utils.GetPage(news_api.home_url + NewsList['href'])
-					print 'Get ->' + '【' + NewsList['subClassify'] + '】' + NewsList['title']
+                    PageContent = utils.GetPage(news_api.home_url + NewsList['href'])
+                    print 'Get ->' + '【' + NewsList['subClassify'] + '】' + NewsList['title']
 
-					utils.write2file(str(PageContent), f.name)
+                    utils.write2file(str(PageContent), f.name)
 
-					f.close()
-					sleep(1)
-					#print ''.join(summary)
-			sys.exit()
+                    f.close()
+                    sleep(1)
+                    #print ''.join(summary)
+            sys.exit()
 
-		#NewsChunksDict debug
-		#for ClassifyName in NewsChunksDict:
-		#	print '------------- ' + ClassifyName + ' -------------'
-		#	for NewsList in NewsChunksDict[ClassifyName]:
-		#		print '【' + NewsList['subClassify'] + '】' + NewsList['Title'] + NewsList['HREF']
-		PageContent = []
-		for Classify in news_api.news_lists:
-			try:
-				f = open(api.store_in + "/" + RssFileName[Classify] + '_RSS.html', 'w')
-			except KeyError:
-				logger.info('%s, not support' % (Classify))
-				continue
-			api.PastHeader(f, str(Classify))
-			logger.info('------------- %s -------------', Classify)
-			for NewsList in news_api.news_lists[Classify]:
-				subClassify = NewsList[0]
-				# print subClassify
-				for news_item in NewsList[1:]:
-					try:
-						PageContent = utils.GetPage(news_api.home_url + news_item['href'])
-					except IOError:
-						#try again
-						try:
-							PageContent = utils.GetPage(news_api.home_url + news_item['href'])
-						except IOError:
-							#abandent
-							continue
-					logger.info('【' + subClassify + '】' + news_item['title'])
-					summary = []
+        #NewsChunksDict debug
+        #for ClassifyName in NewsChunksDict:
+        #    print '------------- ' + ClassifyName + ' -------------'
+        #    for NewsList in NewsChunksDict[ClassifyName]:
+        #        print '【' + NewsList['subClassify'] + '】' + NewsList['Title'] + NewsList['HREF']
+        PageContent = []
+        for Classify in news_api.news_lists:
+            try:
+                f = open(api.store_in + "/" + RssFileName[Classify] + '_RSS.html', 'w')
+            except KeyError:
+                logger.info('%s, not support' % (Classify))
+                continue
+            api.PastHeader(f, str(Classify))
+            logger.info('------------- %s -------------', Classify)
+            for NewsList in news_api.news_lists[Classify]:
+                subClassify = NewsList[0]
+                # print subClassify
+                for news_item in NewsList[1:]:
+                    time_start_item = time()
+                    try:
+                        PageContent = utils.GetPage(news_api.home_url + news_item['href'])
+                    except IOError:
+                        #try again
+                        try:
+                            PageContent = utils.GetPage(news_api.home_url + news_item['href'])
+                        except IOError:
+                            #abandent
+                            logger.info('The item spend %d secs' % (time() - time_start_item))
+                            continue
+                    logger.info('【' + subClassify + '】' + news_item['title'])
+                    summary = []
 
-					try:
-						result =  news_api.page_parser(PageContent)
-					except:
-						logger.critical('parse failur %s%s', news_api.home_url, news_item['href'])
-						continue
+                    try:
+                        result =  news_api.page_parser(PageContent)
+                    except:
+                        logger.critical('parse failur %s%s', news_api.home_url, news_item['href'])
+                        traceback.print_exc(file=sys.stdout)
+                        logger.info('The item spend %d secs' % (time() - time_start_item))
+                        continue
 
-					try:
-						summary.append(api.page_compose(result))
-					except:
-						logger.critical('compose failur %s%s', news_api.home_url, news_item['href'])
-						logger.critical('Dump:')
-						logger.critical(str(result))
-						continue
+                    try:
+                        summary.append(api.page_compose(result))
+                    except:
+                        logger.critical('compose failur %s%s', news_api.home_url, news_item['href'])
+                        logger.critical('Dump:')
+                        logger.critical(str(result))
+                        logger.info('The item spend %d secs' % (time() - time_start_item))
+                        continue
 
-					#summary = [s for s in summary if s != None]
-					api.PastEntry(f, news_item['title'], news_api.home_url + news_item['href'], ''.join(summary), subClassify)
-					sleep(1)
-					#print ''.join(summary)
-			api.PastTail(f)
-			f.close()
+                    #summary = [s for s in summary if s != None]
+                    api.PastEntry(f, news_item['title'], news_api.home_url + news_item['href'], ''.join(summary), subClassify)
+                    logger.info('The item spend %d secs' % (time() - time_start_item))
+                    sleep(1)
+                    #print ''.join(summary)
+            api.PastTail(f)
+            logger.info('The total jobs spend %d secs' % (time() - time_start))
+            f.close()
 
