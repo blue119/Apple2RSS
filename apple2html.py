@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
+from FileIO import RemoteHtmlFileIO as html_r
+from utils import utils
 from urllib import urlopen
 from BeautifulSoup import BeautifulSoup
 from time import gmtime, strftime, sleep, localtime, time
@@ -62,7 +64,7 @@ class SaveAppleNewsToHtml(object):
 	def _photo_dl_save(self, url):
 		file_name = re.compile('.*\/([\w\.\-]+[jpg|JPG])$').findall(url)[0]
 		f = urlopen(url)
-		local_file = open(api.store_in + '/img/' + file_name, "w")
+		local_file = open(self.store_in + '/img/' + file_name, "w")
 		local_file.write(f.read())
 		local_file.close()
 		return file_name
@@ -71,8 +73,7 @@ class SaveAppleNewsToHtml(object):
 		print "download action news: " + url
 		file_name = re.compile('.*\/([\w\.\-]+[mp4])$').findall(url)[0]
 		f = urlopen(url)
-		f = urlopen(url)
-		local_file = open(api.store_in + '/img/' + file_name, "w")
+		local_file = open(self.store_in + '/img/' + file_name, "w")
 		local_file.write(f.read())
 		local_file.close()
 		return file_name
@@ -148,13 +149,11 @@ def main_argv_parser(argv):
 		help=("like as -D, not only download the news page, but also do transform."))
 	option_parser.add_option("-D", "--download", action="store_true", dest="only_dl",
 		help=("only to download news page don't transform to rss format."))
-	option_parser.add_option("-d", "--debug", action="store_true", dest="debug",
-		help=("Open debug mode"))
 	option_parser.add_option("-f", "--folder", action="store", type="string",
 		dest="folder", default="public_html", help=("Slecte a folder, store in.\n"
 		"If it's not exist will be create. default is \"public_html\""))
 	option_parser.add_option("-p", "--page", action="store", dest="page", type="string",
-		help=("Convert the PAGE to rss file save in /tmp/apple.html.\n"))
+		help=("Download and Coverte this PAGE, then save to one_page/apple.html.\n"))
 
 	(options, args) = option_parser.parse_args(argv[1:])
 	if len(args) < 2:
@@ -175,8 +174,6 @@ def main_argv_parser(argv):
 
 	return options
 
-
-
 def mkdir(path, delete):
 	if os.path.isdir(path):
 		if delete:
@@ -188,6 +185,24 @@ def mkdir(path, delete):
 		logger.info("create: %s",  path)
 		os.mkdir(path)
 
+def get_one_page(utils):
+	time_one_page = time()
+	news_api = AppleNews(html_r(), 'http://www.appledaily.com.tw/')
+	api = SaveAppleNewsToHtml(news_api.home_url)
+	api.store_in = "one_page/"
+	mkdir(api.store_in, True)
+	mkdir(api.store_in + '/img', True)
+	f = open(api.store_in + 'apple.html', 'w')
+
+	PageContent = utils.GetPage(opt.page)
+	PageContent = news_api.page_parser(PageContent)
+	api.PastHeader(f, "")
+	PageContent = api.page_compose(PageContent)
+	api.PastEntry(f, "", "", ''.join(PageContent), "")
+	api.PastTail(f)
+	logger.info("get one page spend %d sec", time() - time_one_page)
+	sys.exit()
+
 __version__ = "apple2rss Ver:0.0.1"
 __author__ = "Yao-Po Wang (blue119@gmail.com)"
 __USAGE__ = "usage: python %prog"
@@ -195,161 +210,90 @@ __USAGE__ = "usage: python %prog"
 if __name__ == '__main__':
 	time_start = time()
 	opt = main_argv_parser(sys.argv)
-	from applenewsapi import AppleNews
-	from FileIO import RemoteHtmlFileIO as html_r
-	from utils import utils
 	utils = utils()
 
-
-	# if opt.page:
-		# time_start_one_page = time()
-		# news_api = AppleNews()
-		# api = html_tool(news_api.home_url)
-		# api.store_in = "one_page/"
-		# mkdir(api.store_in, True)
-		# mkdir(api.store_in + '/img', True)
-		# PageContent = utils.GetPage(opt.page)
-		# PageContent = news_api.page_parser(PageContent)
-
-		# try:
-			# PageContent = api.page_compose(PageContent)
-		# except:
-			# print str(PageContent)
-		# PageContent = '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>' + PageContent
-		# utils.write2file(PageContent, api.store_in + 'main_story.html')
-		# logger.info("get one page spend %d sec", time() - time_start_one_page)
-		# sys.exit()
-
-	"""
-	Reference:
-		HOWTO Fetch Internet Resources with Python: http://www.voidspace.org.uk/python/articles/urllib2.shtml
-	"""
 	# some connection timeout in seconds
 	timeout = 10
 	setdefaulttimeout(timeout)
 
-	time_start_get_list = time()
+	if opt.page:
+		get_one_page(utils)
+
+	time_get_list = time()
 	news_api = AppleNews(html_r(), 'http://www.appledaily.com.tw/')
 	news_api.get_list('appledaily/todayapple')
-
-	time_end_get_list = time() - time_start_get_list
+	time_end_get_list = time() - time_get_list
 	logger.info("get list spend %d sec", time_end_get_list)
 
 	api = SaveAppleNewsToHtml(news_api.home_url)
 
-	#folder create
+	#Folder Prepare
 	api.store_in = opt.folder + "/" + strftime("%Y-%m-%d", localtime())
 	mkdir(opt.folder, False)
 	mkdir(api.store_in, False)
 	mkdir(api.store_in + '/img', False)
 
-	if opt.debug:
-		mkdir("main_story", False)
-		mkdir("main_story/img", False)
-		api.store_in = "main_story"
-		f = open('main_story/main_story.html', 'w')
+	NameMap = {
+		utils.Ch2UTF8('頭條要聞'):'HeadLine',
+		utils.Ch2UTF8('副刊'):'Supplement',
+		utils.Ch2UTF8('體育'):'Sport',
+		utils.Ch2UTF8('蘋果國際'):'International',
+		utils.Ch2UTF8('娛樂'):'Entertainment',
+		utils.Ch2UTF8('財經'):'Finance',
+		utils.Ch2UTF8('地產'):'Estate',
+		utils.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
+		utils.Ch2UTF8('家居王'):'HouseWorking',
+		utils.Ch2UTF8('論壇與專欄'):'Column'
+	}
 
-		title = news_api.get_list[utils.Ch2UTF8('頭條要聞')][0][1]['title']
-		logger.debug('Get [%s]', title)
-		PageContent = utils.GetPage(news_api.home_url + \
-			news_api.news_lists[utils.Ch2UTF8('頭條要聞')][0][1]['href'])
-		# sys.stdout.write('[Parsing] -> ')
-		logger.debug('[Parsing] -> ')
-		PageContent = news_api.page_parser(PageContent)
-		# sys.stdout.write('[Compose] -> ')
-		logger.debug('[Compose] -> ')
-		api.PastHeader(f, "頭條要聞")
-		PageContent = api.page_compose(PageContent)
-		# print('[Write2File]')
-		logger.debug('[Write2File]')
-		api.PastEntry(f, title, news_api.home_url + news_api.news_lists[utils.Ch2UTF8('頭條要聞')][0][1]['href'], ''.join(PageContent), "頭條")
-		api.PastTail(f)
-		time_start_one_page = time()
-	else:
-		RssFileName = {
-			utils.Ch2UTF8('頭條要聞'):'HeadLine',
-			utils.Ch2UTF8('副刊'):'Supplement',
-			utils.Ch2UTF8('體育'):'Sport',
-			utils.Ch2UTF8('蘋果國際'):'International',
-			utils.Ch2UTF8('娛樂'):'Entertainment',
-			utils.Ch2UTF8('財經'):'Finance',
-			utils.Ch2UTF8('地產'):'Estate',
-			utils.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
-			utils.Ch2UTF8('家居王'):'HouseWorking',
-			utils.Ch2UTF8('論壇與專欄'):'Column'
-		}
+	for Classify in news_api.news_lists:
+		if NameMap.get(Classify):
+			f = open(api.store_in + "/" + NameMap.get(Classify) + '_RSS.html', 'w')
+		else:
+			logger.info('%s, not support' % (Classify))
+			continue
 
-		if opt.only_dl:
-			for Classify in news_api.news_lists:
-				ClassifyPath = api.store_in + "/" + RssFileName[Classify]
-				mkdir(ClassifyPath, True)
-				print '\n------------- ' + Classify + ' -------------'
-				for NewsList in news_api.news_lists[Classify]:
-					f = open(ClassifyPath + "/" + NewsList['href'].split('/')[-3] + '.html', 'w')
+		api.PastHeader(f, str(Classify))
+		logger.info('------------- %s -------------', Classify)
 
-					PageContent = utils.GetPage(news_api.home_url + NewsList['href'])
-					print 'Get ->' + '【' + NewsList['subClassify'] + '】' + NewsList['title']
-
-					utils.write2file(str(PageContent), f.name)
-
-					f.close()
-					sleep(1)
-					#print ''.join(summary)
-			sys.exit()
-
-		#NewsChunksDict debug
-		#for ClassifyName in NewsChunksDict:
-		#	print '------------- ' + ClassifyName + ' -------------'
-		#	for NewsList in NewsChunksDict[ClassifyName]:
-		#		print '【' + NewsList['subClassify'] + '】' + NewsList['Title'] + NewsList['HREF']
-		for Classify in news_api.news_lists:
-			try:
-				f = open(api.store_in + "/" + RssFileName[Classify] + '_RSS.html', 'w')
-			except KeyError:
-				logger.info('%s, not support' % (Classify))
-				continue
-
-			api.PastHeader(f, str(Classify))
-			logger.info('------------- %s -------------', Classify)
-
-			for subClassify in news_api.news_lists[Classify]:
-				for NewsList in news_api.news_lists[Classify][subClassify]:
-					# print subClassify
-					time_start_item = time()
-					try:
-						page = news_api.get_page(news_api.home_url + NewsList['href'])
-					except IOError:
-						#abandent
-						logger.info('The item spend %d secs' % (time() - time_start_item))
-						continue
-
-					logger.info('【' + subClassify + '】' + NewsList['title'])
-					summary = []
-
-					try:
-						result =  news_api.page_parser(page)
-					except:
-						logger.critical('parse failur %s%s', news_api.home_url, NewsList['href'])
-						traceback.print_exc(file=sys.stdout)
-						logger.info('The item spend %d secs' % (time() - time_start_item))
-						continue
-
-					try:
-						summary.append(api.page_compose(result))
-					except:
-						logger.critical('compose failur %s%s', news_api.home_url, NewsList['href'])
-						logger.critical('Dump:')
-						logger.critical(str(result))
-						traceback.print_exc(file=sys.stdout)
-						logger.info('The item spend %d secs' % (time() - time_start_item))
-						continue
-
-					summary = [s for s in summary if s != None]
-					api.PastEntry(f, NewsList['title'], news_api.home_url + NewsList['href'], ''.join(summary), subClassify)
+		for subClassify in news_api.news_lists[Classify]:
+			for NewsList in news_api.news_lists[Classify][subClassify]:
+				# print subClassify
+				time_start_item = time()
+				try:
+					page = news_api.get_page(news_api.home_url + NewsList['href'])
+				except IOError:
+					#abandent
 					logger.info('The item spend %d secs' % (time() - time_start_item))
-					sleep(1)
-					#print ''.join(summary)
-			api.PastTail(f)
-			logger.info('The total jobs spend %d secs' % (time() - time_start))
-			f.close()
+					continue
+
+				logger.info('【' + subClassify + '】' + NewsList['title'])
+				summary = []
+
+				try:
+					result =  news_api.page_parser(page)
+				except:
+					logger.critical('parse failur %s%s', news_api.home_url, NewsList['href'])
+					traceback.print_exc(file=sys.stdout)
+					logger.info('The item spend %d secs' % (time() - time_start_item))
+					continue
+
+				try:
+					summary.append(api.page_compose(result))
+				except:
+					logger.critical('compose failur %s%s', news_api.home_url, NewsList['href'])
+					logger.critical('Dump:')
+					logger.critical(str(result))
+					traceback.print_exc(file=sys.stdout)
+					logger.info('The item spend %d secs' % (time() - time_start_item))
+					continue
+
+				summary = [s for s in summary if s != None]
+				api.PastEntry(f, NewsList['title'], news_api.home_url + NewsList['href'], ''.join(summary), subClassify)
+				logger.info('The item spend %d secs' % (time() - time_start_item))
+				sleep(1)
+				#print ''.join(summary)
+		api.PastTail(f)
+		logger.info('The total jobs spend %d secs' % (time() - time_start))
+		f.close()
 
