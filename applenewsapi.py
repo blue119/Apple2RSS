@@ -223,7 +223,7 @@ class AppleNews(NewsBase):
 			totally["an_video"] = mp4
 
 		# main section of article
-		article = d.find('article', {'class':'mpatc slvl clearmen'})
+		article = d.find('article', {'class':'mpatc clearmen'})
 		article_dict = {}
 		totally["article"] = []
 

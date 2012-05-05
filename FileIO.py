@@ -1,4 +1,5 @@
 import urllib2
+import httplib
 
 class FileIOBase(object):
 	"""docstring for FileIOBase"""
@@ -45,6 +46,9 @@ class RemoteHtmlFileIO(FileIOBase):
 			self._content = urllib2.urlopen(url_req).read()
 		except IOError, ErrMsg:
 			logger.warning('Maybe %s is dead', URL)
+			return None
+		except httplib.BadStatusLine:
+			logger.warning('happen BadStatusLine', URL)
 			return None
 
 		return self._content

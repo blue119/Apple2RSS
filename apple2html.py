@@ -9,7 +9,6 @@ from time import gmtime, strftime, sleep, localtime, time
 from copy import copy
 from applenewsapi import AppleNews
 from socket import setdefaulttimeout
-from shutil import rmtree
 import sys, re
 import urllib2
 import optparse
@@ -41,11 +40,11 @@ class SaveAppleNewsToHtml(object):
 		f.write('\t<head>\n')
 		f.write('\t\t<title>' + classify + strftime("%a, %d %b %Y %H:%M:%S") + '</title>\n')
 		f.write('\t\t<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n')
-		f.write('\t\t<style type="text/css" media="all">\n')
-		f.write('\t\t\t#border {\n')
-		f.write('\t\t\t\tborder: 1px dashed #ccc;\n')
-		f.write('\t\t\t}\n')
-		f.write('\t\t</style>\n')
+		# f.write('\t\t<style type="text/css" media="all">\n')
+		# f.write('\t\t\t#border {\n')
+		# f.write('\t\t\t\tborder: 1px dashed #ccc;\n')
+		# f.write('\t\t\t}\n')
+		# f.write('\t\t</style>\n')
 		f.write('\t</head>\n')
 		f.write('\t<body>\n')
 		f.write('\n')
@@ -56,10 +55,11 @@ class SaveAppleNewsToHtml(object):
 		f.write('</html>\n')
 
 	def PastEntry(self, f, title, link, summary, classify):
-		f.write('\t\t<b>【' + classify + '】' + title + '</b>\n')
-		f.write('\t\t<p id="border">\n')
+		f.write('\t\t<h4>【' + classify + '】' + title + '</h4>\n')
+		# f.write('\t\t<p id="border">\n')
 		f.write('\t\t\t' +  summary + '\n')
-		f.write('\t\t</p>\n')
+		f.write('\t\t<hr \>\n')
+		# f.write('\t\t</p>\n')
 
 	def _photo_dl_save(self, url):
 		file_name = re.compile('.*\/([\w\.\-]+[jpg|JPG])$').findall(url)[0]
@@ -70,7 +70,7 @@ class SaveAppleNewsToHtml(object):
 		return file_name
 
 	def _video_dl_save(self, url):
-		print "download action news: " + url
+		# print "download action news: " + url
 		file_name = re.compile('.*\/([\w\.\-]+[mp4])$').findall(url)[0]
 		f = urlopen(url)
 		local_file = open(self.store_in + '/img/' + file_name, "w")
@@ -121,11 +121,14 @@ class SaveAppleNewsToHtml(object):
 
 		# the content may have no picture in summary.
 		if content.get('an_photo'):
-			compose.append("<a href=\"img/" + \
-				self._video_dl_save(content.get('an_video')) + "\">" + \
-				"<img width=\"460\" src=\"img/" + \
+			# compose.append("<a href=\"img/" + \
+				# self._video_dl_save(content.get('an_video')) + "\">" + \
+				# "<img width=\"460\" src=\"img/" + \
+				# self._photo_dl_save(content.get('an_photo').get('small'))  + \
+				# "\"/></a><br />")
+			compose.append( "<img width=\"460\" src=\"img/" + \
 				self._photo_dl_save(content.get('an_photo').get('small'))  + \
-				"\"/></a><br />")
+				"\"/><br />")
 
 		if content.get('article'):
 			for article in content.get('article'):
@@ -174,24 +177,13 @@ def main_argv_parser(argv):
 
 	return options
 
-def mkdir(path, delete):
-	if os.path.isdir(path):
-		if delete:
-			logger.info("delete -> %s",  path)
-			rmtree(path)
-			logger.info("create: %s",  path)
-			os.mkdir(path)
-	else:
-		logger.info("create: %s",  path)
-		os.mkdir(path)
-
 def get_one_page(utils):
 	time_one_page = time()
 	news_api = AppleNews(html_r(), 'http://www.appledaily.com.tw/')
 	api = SaveAppleNewsToHtml(news_api.home_url)
 	api.store_in = "one_page/"
-	mkdir(api.store_in, True)
-	mkdir(api.store_in + '/img', True)
+	utils.mkdir(api.store_in, True)
+	utils.mkdir(api.store_in + '/img', True)
 	f = open(api.store_in + 'apple.html', 'w')
 
 	PageContent = utils.GetPage(opt.page)
@@ -206,6 +198,19 @@ def get_one_page(utils):
 __version__ = "apple2rss Ver:0.0.1"
 __author__ = "Yao-Po Wang (blue119@gmail.com)"
 __USAGE__ = "usage: python %prog"
+
+NameMap = {
+	utils.Ch2UTF8('頭條要聞'):'HeadLine',
+	utils.Ch2UTF8('副刊'):'Supplement',
+	utils.Ch2UTF8('體育'):'Sport',
+	utils.Ch2UTF8('蘋果國際'):'International',
+	utils.Ch2UTF8('娛樂'):'Entertainment',
+	utils.Ch2UTF8('財經'):'Finance',
+	utils.Ch2UTF8('地產'):'Estate',
+	utils.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
+	utils.Ch2UTF8('家居王'):'HouseWorking',
+	# utils.Ch2UTF8('論壇與專欄'):'Column'
+}
 
 if __name__ == '__main__':
 	time_start = time()
@@ -229,26 +234,13 @@ if __name__ == '__main__':
 
 	#Folder Prepare
 	api.store_in = opt.folder + "/" + strftime("%Y-%m-%d", localtime())
-	mkdir(opt.folder, False)
-	mkdir(api.store_in, False)
-	mkdir(api.store_in + '/img', False)
-
-	NameMap = {
-		utils.Ch2UTF8('頭條要聞'):'HeadLine',
-		utils.Ch2UTF8('副刊'):'Supplement',
-		utils.Ch2UTF8('體育'):'Sport',
-		utils.Ch2UTF8('蘋果國際'):'International',
-		utils.Ch2UTF8('娛樂'):'Entertainment',
-		utils.Ch2UTF8('財經'):'Finance',
-		utils.Ch2UTF8('地產'):'Estate',
-		utils.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
-		utils.Ch2UTF8('家居王'):'HouseWorking',
-		utils.Ch2UTF8('論壇與專欄'):'Column'
-	}
+	utils.mkdir(opt.folder, False)
+	utils.mkdir(api.store_in, False)
+	utils.mkdir(api.store_in + '/img', False)
 
 	for Classify in news_api.news_lists:
 		if NameMap.get(Classify):
-			f = open(api.store_in + "/" + NameMap.get(Classify) + '_RSS.html', 'w')
+			f = open(api.store_in + "/" + NameMap.get(Classify) + '.html', 'w')
 		else:
 			logger.info('%s, not support' % (Classify))
 			continue

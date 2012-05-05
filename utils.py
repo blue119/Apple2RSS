@@ -2,10 +2,12 @@ from urllib import urlopen
 import sys, re
 import urllib2
 import logging
+from shutil import rmtree
+import os
 
 logger = logging.getLogger('apple2rss.utils')
 
-class utils():
+class utils(object):
 	def GetPage(self, URL):
 		try:
 			url_req = urllib2.Request(URL)
@@ -38,8 +40,21 @@ class utils():
 	def Url2TinyUrl(self, URL):
 		return urlopen('http://tinyurl.com/api-create.php?url=' + URL).read()
 
-	def Ch2UTF8(self, char):
+	@staticmethod
+	def Ch2UTF8(char):
 		return unicode(char, 'utf-8', 'ignore')
+
+	@staticmethod
+	def mkdir(path, delete):
+		if os.path.isdir(path):
+			if delete:
+				logger.info("delete -> %s",  path)
+				rmtree(path)
+				logger.info("create: %s",  path)
+				os.mkdir(path)
+		else:
+			logger.info("create: %s",  path)
+			os.mkdir(path)
 
 	def write2file(self, content, file_path = '/tmp/a.html'):
 		f = open(file_path, 'w')
