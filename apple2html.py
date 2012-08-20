@@ -209,7 +209,7 @@ NameMap = {
 	utils.Ch2UTF8('地產'):'Estate',
 	utils.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
 	utils.Ch2UTF8('家居王'):'HouseWorking',
-	# utils.Ch2UTF8('論壇與專欄'):'Column'
+	utils.Ch2UTF8('論壇與專欄'):'Column'
 }
 
 if __name__ == '__main__':
@@ -237,6 +237,11 @@ if __name__ == '__main__':
 	utils.mkdir(opt.folder, False)
 	utils.mkdir(api.store_in, False)
 	utils.mkdir(api.store_in + '/img', False)
+
+	blacklist = open('blacklist.txt', 'r').readlines()
+	if blacklist:
+		blf = open(api.store_in + '/blacklist.html', 'w')
+		api.PastHeader(blf, 'BalckList')
 
 	for Classify in news_api.news_lists:
 		if NameMap.get(Classify):
@@ -270,6 +275,17 @@ if __name__ == '__main__':
 					logger.info('The item spend %d secs' % (time() - time_start_item))
 					continue
 
+				# blacklist filter
+				if blacklist:
+					articles = NewsList['title'] + \
+						''.join([ a['header'] + a['text'] for a in result['article'] ])
+
+					if [ bl for bl in blacklist if bl[:-1] in articles ]:
+						print '【' + subClassify + '】' + NewsList['title'] + ' be blocked'
+						api.PastEntry(blf, NewsList['title'], news_api.home_url +
+								NewsList['href'], api.page_compose(result), subClassify)
+						continue
+
 				try:
 					summary.append(api.page_compose(result))
 				except:
@@ -286,6 +302,8 @@ if __name__ == '__main__':
 				sleep(1)
 				#print ''.join(summary)
 		api.PastTail(f)
+		if blacklist: api.PastTail(blf)
 		logger.info('The total jobs spend %d secs' % (time() - time_start))
 		f.close()
+	if blacklist: blf.close()
 
