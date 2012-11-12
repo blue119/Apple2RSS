@@ -56,7 +56,7 @@ class AppleNews(NewsBase):
 
 		# sweep out all incorrect end-tag
 		end_tag = "</section>                                  <article"
-		lists_section = ''.join(lists_section.split('\n'))
+		lists_section = ''.join(lists_section.split('\r\n'))
 		lists_section = lists_section.replace(end_tag, '<article')
 		lists_section = BeautifulSoup(lists_section)
 
@@ -202,15 +202,13 @@ class AppleNews(NewsBase):
 		d = BeautifulSoup(raw_content)
 
 		# look for the photo of action news
-		strip_an_p = re.compile("\[{url:'(.*)'}\].*Player.*\('(.*)'\);")
+		strip_an_p = re.compile("\[{url:'(.*)'}\].*.setInitialImag.*\('(.*)'\)")
 		if d.find('div', {'id':'videobox'}):
 			photo = {}
-			an_url = d.find('div', {'id':'videobox'}).iframe["src"]
-
-			an_page = urlopen(an_url).read()
+			an_page = d.find('div', {'id':'videobox'})
 
 			# just leave mp4 and jpg information
-			an_page = ''.join(an_page)
+			an_page = ''.join(str(an_page).split('\r\n'))
 			an_page = an_page.split("var playlist_array = ")[1]
 			an_page = an_page.split("var new_playlist_array")[0]
 			an_page = an_page.replace('\n', '').replace(' ', '')
@@ -240,18 +238,19 @@ class AppleNews(NewsBase):
 		# look for brlockcontent
 		blockhead = 0
 		strip_p_p = re.compile("<p\ id=\"blockcontent[\d]+\">(.*)</p>")
-		next = article.find('h2', {'id':'blockhead' + str(blockhead)})
+		# next = article.find('h2', {'id':'blockhead' + str(blockhead)})
+		next = article.find('h2')
 		while(next):
-			blockhead += 1
 			header = next.string
 
-			next = next.findNext('p')
+			next = next.findNext('p', {'id':'blockcontent' + str(blockhead)})
 			text = strip_p_p.findall(str(next))[0]
 			text = text.replace("<br />", "")
 
 			totally["article"].append({"header": header if header else "", \
 					"text": text if text else ""})
 
+			blockhead += 1
 			next = next.findNext('h2', {'id':'blockhead' + str(blockhead)})
 
 		# look for all figure
