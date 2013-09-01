@@ -85,7 +85,9 @@ class AppleNews(NewsBase):
 
                 h2_list = []
                 news_item = {}
+
                 for news in article.findAll('a'):
+                    news = str(news).replace('target="_blank" ', '')
                     href, title = title_href.findall(str(news))[0]
                     title = title.replace('', '').replace('<br />', '').replace('…', '')
                     logger.debug( '[' + h2 + '] ' + title + ' - ' + href)
@@ -238,13 +240,13 @@ class AppleNews(NewsBase):
 
         # look for brlockcontent
         blockhead = 0
-        strip_p_p = re.compile("<p\ id=\"blockcontent[\d]+\">(.*)</p>")
+        strip_p_p = re.compile("<p\ id=\"bcontent\">(.*)</p>")
         # next = article.find('h2', {'id':'blockhead' + str(blockhead)})
         next = article.find('h2')
         while(next):
             header = next.string
 
-            next = next.findNext('p', {'id':'blockcontent' + str(blockhead)})
+            next = next.findNext('p', {'id':'bcontent'})
             text = strip_p_p.findall(str(next))[0]
             text = text.replace("<br />", "")
 
@@ -252,7 +254,7 @@ class AppleNews(NewsBase):
                     "text": text if text else ""})
 
             blockhead += 1
-            next = next.findNext('h2', {'id':'blockhead' + str(blockhead)})
+            next = next.findNext('h2', {'id':'bhead'})
 
         # look for all figure
         next = article.find('figure', {'class':'lbimg sgimg sglft'})
