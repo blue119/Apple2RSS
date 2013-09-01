@@ -207,7 +207,7 @@ class AppleNews(NewsBase):
         strip_an_p = re.compile("\[{url:'(.*)'}\].*.setInitialImag.*\('(.*)'\)")
         if d.find('div', {'id':'videobox'}):
             photo = {}
-            an_page = d.find('div', {'id':'videobox'})
+            an_page = d.find('div', {'class':'mediabox'})
 
             # just leave mp4 and jpg information
             an_page = str(an_page).replace('\r', '').replace('\n', '');
@@ -248,7 +248,7 @@ class AppleNews(NewsBase):
 
             next = next.findNext('p', {'id':'bcontent'})
             text = strip_p_p.findall(str(next))[0]
-            text = text.replace("<br />", "")
+            # text = text.replace("<br />", "")
 
             totally["article"].append({"header": header if header else "", \
                     "text": text if text else ""})
