@@ -16,3 +16,5 @@ do
     wkhtmltopdf -s A6 $f $TODAY_FOLDER/${TODAY}_${NON_EXTENSION}.pdf
 done
 
+zip -9 $TODAY_FOLDER/${TODAY}.zip $TODAY_FOLDER/*.pdf
+# send_to_kindle.py $TODAY_FOLDER/${TODAY}.zip
