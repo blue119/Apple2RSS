@@ -70,17 +70,15 @@ class AppleNews(NewsBase):
         classified_lists = {}
         for cl in  subject_titles.findAll('li'):
             title = cl.a.string
-            classified_lists[title] = cl["id"]
+            classified_lists[title] = cl.a['href'].replace('#', '')
 
         # http://docs.python.org/dev/whatsnew/2.7.html#pep-0372
         for anchor in classified_lists.itervalues():
-            sub_classified_set = []
-            top = lists_section.find('section', {'id' : anchor})
-            h1 = top.h1.string.replace('&nbsp;', '')
+            h1 = lists_section.find('section', {'id' : 'snr-main' + anchor}).h1.string.replace('&nbsp;', '')
             logger.debug("%s %s %s" % ('+' * 5,  h1, '+' * 5))
 
             h2_dict = OrderedDict()
-            for article in top.findAll('article'):
+            for article in lists_section.findAll('article', {'class':'nclns eclnms' + anchor}):
                 h2 = article.h2.string
 
                 h2_list = []
