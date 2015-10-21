@@ -70,7 +70,7 @@ class AppleNews(NewsBase):
         classified_lists = {}
         for cl in  subject_titles.findAll('li'):
             title = cl.a.string
-            classified_lists[title] = cl["id"]
+            classified_lists[title] = cl.a['href'].replace('#', '')
 
         # http://docs.python.org/dev/whatsnew/2.7.html#pep-0372
         for head, anchor in classified_lists.items():
