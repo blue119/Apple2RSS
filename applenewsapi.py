@@ -73,14 +73,16 @@ class AppleNews(NewsBase):
             classified_lists[title] = cl["id"]
 
         # http://docs.python.org/dev/whatsnew/2.7.html#pep-0372
-        for anchor in classified_lists.itervalues():
+        for head, anchor in classified_lists.items():
             sub_classified_set = []
-            top = lists_section.find('section', {'id' : anchor})
-            h1 = top.h1.string.replace('&nbsp;', '')
-            logger.debug("%s %s %s" % ('+' * 5,  h1, '+' * 5))
+            section_articles = lists_section.findAll('article', {'class' : anchor.replace('snr-main', 'nclns eclnms')})
+
+            #  top = lists_section.find('section', {'id' : anchor})
+            #  h1 = top.h1.string.replace('&nbsp;', '')
+            logger.debug("%s %s %s" % ('+' * 5,  head, '+' * 5))
 
             h2_dict = OrderedDict()
-            for article in top.findAll('article'):
+            for article in section_articles:
                 h2 = article.h2.string
 
                 h2_list = []
@@ -93,10 +95,10 @@ class AppleNews(NewsBase):
                     logger.debug( '[' + h2 + '] ' + title + ' - ' + href)
 
                     news_item['title'] = title
-                    news_item['href'] = href[1:]
+                    news_item['href'] = href if href.startswith('http') else href[1:]
                     h2_list.append(copy(news_item))
                 h2_dict[h2] = copy(h2_list)
-            self._news_lists[h1] = copy(h2_dict)
+            self._news_lists[head] = copy(h2_dict)
 
     def show_news_list(self):
         for classfied in self.news_lists:
@@ -204,18 +206,26 @@ class AppleNews(NewsBase):
         d = BeautifulSoup(raw_content)
 
         # look for the photo of action news
-        strip_an_p = re.compile("\[{url:'(.*)'}\].*.setInitialImag.*\('(.*)'\)")
+        strip_an_p  = re.compile("\[{url:'(.*)'}\].*.setInitialImag.*\('(.*)'\)")
+        strip_an_p2 = re.compile("\('(.*)f4m',.*.setInitialImag.*\('(.*)'\)")
+
         if d.find('div', {'id':'videobox'}):
             photo = {}
             an_page = d.find('div', {'class':'mediabox'})
 
             # just leave mp4 and jpg information
             an_page = str(an_page).replace('\r', '').replace('\n', '');
-            # an_page = ''.join(str(an_page).split('\r\n'))
-            an_page = an_page.split("var playlist_array = ")[1]
-            an_page = an_page.split("var new_playlist_array")[0]
+            if "var playlist_array = " in an_page:
+                an_page = an_page.split("var playlist_array = ")[1]
+                _p = strip_an_p
+
+            if "setAkamaiLiveStreamPath" in an_page:
+                an_page = an_page.split("setAkamaiLiveStreamPath")[1]
+                _p = strip_an_p2
+
+            an_page = an_page.split("setStreamingMethod")[0]
             an_page = an_page.replace('\n', '').replace(' ', '')
-            mp4, jpg = strip_an_p.findall(an_page)[0]
+            mp4, jpg = _p.findall(an_page)[0]
 
             photo['title'] = ""
             photo['big'] = ""
@@ -227,7 +237,6 @@ class AppleNews(NewsBase):
         article = d.find('article', {'class':'mpatc clearmen'})
         article_dict = {}
         totally["article"] = []
-
         totally['h1'] = d.find('h1', {'id':'h1'}).string
         totally['h2'] = d.find('h2', {'id':'h2'}).string
 

@@ -201,14 +201,13 @@ __USAGE__ = "usage: python %prog"
 
 NameMap = {
     utils.Ch2UTF8('頭條要聞'):'HeadLine',
-    utils.Ch2UTF8('副刊'):'Supplement',
-    utils.Ch2UTF8('體育'):'Sport',
+    #  utils.Ch2UTF8('蘋果副刊'):'Supplement',
+    utils.Ch2UTF8('體育新聞'):'Sport',
     utils.Ch2UTF8('蘋果國際'):'International',
-    utils.Ch2UTF8('娛樂'):'Entertainment',
-    utils.Ch2UTF8('財經'):'Finance',
-    utils.Ch2UTF8('地產'):'Estate',
-    utils.Ch2UTF8('豪宅與中古'):'LuxSecHouse',
-    utils.Ch2UTF8('家居王'):'HouseWorking',
+    utils.Ch2UTF8('國際新聞'):'International',
+    #  utils.Ch2UTF8('娛樂新聞'):'Entertainment',
+    utils.Ch2UTF8('財經新聞'):'Finance',
+    utils.Ch2UTF8('房市地產'):'Estate',
     utils.Ch2UTF8('論壇與專欄'):'Column'
 }
 
@@ -258,7 +257,10 @@ if __name__ == '__main__':
                 # print subClassify
                 time_start_item = time()
                 try:
-                    page = news_api.get_page(news_api.home_url + NewsList['href'])
+                    url = NewsList['href']
+                    if not 'http' in url:
+                        url = news_api.home_url + url
+                    page = news_api.get_page(url)
                 except IOError:
                     #abandent
                     logger.info('The item spend %d secs' % (time() - time_start_item))
@@ -270,7 +272,7 @@ if __name__ == '__main__':
                 try:
                     result =  news_api.page_parser(page)
                 except:
-                    logger.critical('parse failur %s%s', news_api.home_url, NewsList['href'])
+                    logger.critical('parse failur %s' % url)
                     traceback.print_exc(file=sys.stdout)
                     logger.info('The item spend %d secs' % (time() - time_start_item))
                     continue
