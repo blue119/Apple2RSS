@@ -89,8 +89,15 @@ class AppleNews(NewsBase):
                 news_item = {}
 
                 for news in article.findAll('a'):
-                    news = str(news).replace('target="_blank" ', '')
-                    href, title = title_href.findall(str(news))[0]
+                    #  news = str(news).replace('target="_blank" ', '')
+                    #  try:
+                        #  href, title = title_href.findall(str(news))[0]
+                    #  except:
+                        #  import IPython; IPython.embed() 
+                        #  error
+                    #  import IPython; IPython.embed() 
+                    href = news['href']
+                    title = news.string
                     title = title.replace('', '').replace('<br />', '').replace('…', '')
                     logger.debug( '[' + h2 + '] ' + title + ' - ' + href)
 
